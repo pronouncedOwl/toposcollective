@@ -60,7 +60,17 @@ export async function sendSMTP2GOEmail(message: SMTP2GOMessage): Promise<SMTP2GO
   // Format recipients as array of strings: ["Name <email@example.com>", ...]
   const to = message.to.map(recipient => formatEmailAddress(recipient.email, recipient.name));
 
-  const payload: any = {
+  interface SMTP2GOPayload {
+    sender: string;
+    to: string[];
+    subject: string;
+    html_body: string;
+    cc?: string[];
+    bcc?: string[];
+    custom_headers?: Array<{header: string; value: string}>;
+  }
+
+  const payload: SMTP2GOPayload = {
     sender,
     to,
     subject: message.subject,
@@ -118,9 +128,13 @@ export async function sendSMTP2GOEmail(message: SMTP2GOMessage): Promise<SMTP2GO
       // Add field validation errors if present
       if (errorData.data.field_validation_errors) {
         const fieldErrors = errorData.data.field_validation_errors;
+        interface FieldError {
+          fieldname: string;
+          message: string;
+        }
         const fieldErrorMsg = Array.isArray(fieldErrors)
-          ? fieldErrors.map((e: any) => `${e.fieldname}: ${e.message}`).join('; ')
-          : `${fieldErrors.fieldname}: ${fieldErrors.message}`;
+          ? fieldErrors.map((e: FieldError) => `${e.fieldname}: ${e.message}`).join('; ')
+          : `${(fieldErrors as FieldError).fieldname}: ${(fieldErrors as FieldError).message}`;
         errorMessage += ` (${fieldErrorMsg})`;
       }
     } else if (errorData.error) {
@@ -148,7 +162,13 @@ export async function sendSMTP2GOEmail(message: SMTP2GOMessage): Promise<SMTP2GO
  * Get SMTP2GO account information
  * Useful for checking account status and limits
  */
-export async function getSMTP2GOAccountInfo(): Promise<any> {
+export interface SMTP2GOAccountInfo {
+  data?: unknown;
+  request_id?: string;
+  [key: string]: unknown;
+}
+
+export async function getSMTP2GOAccountInfo(): Promise<SMTP2GOAccountInfo> {
   const apiKey = process.env.SMTP2GO_API_KEY;
   
   if (!apiKey) {

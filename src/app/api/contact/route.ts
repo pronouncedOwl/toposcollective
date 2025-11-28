@@ -154,7 +154,7 @@ export async function POST(req: NextRequest) {
       
       console.log('Contact form submission sent successfully:', { name: sanitizedName, email: sanitizedEmail, phone: sanitizedPhone });
       console.log('Email response:', emailResponse);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('SMTP2GO email error:', error);
       
       let errorMessage = 'Failed to send email';

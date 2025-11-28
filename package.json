@@ -1,6 +1,7 @@
 {
   "name": "topos-collective",
   "version": "0.1.0",
+  "description": "Topos Collective - Taking you to Exceptional Places",
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",

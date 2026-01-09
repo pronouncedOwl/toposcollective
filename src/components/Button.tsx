@@ -16,7 +16,7 @@ export default function Button({
   href,
   ...props 
 }: ButtonProps) {
-  const baseClasses = 'inline-block font-bold rounded-full transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105';
+  const baseClasses = 'inline-block font-medium rounded-full transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105';
   
   const variantClasses = {
     primary: 'bg-gradient-to-r from-[#3b7d98] to-[#3b7d98e0] text-white hover:from-[#2d5f75] hover:to-[#2d5f75e0]',

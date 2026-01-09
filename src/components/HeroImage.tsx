@@ -36,7 +36,7 @@ export default function HeroImage({
 
       <div className="relative z-10 flex items-center justify-center h-full">
         <div className="text-center text-white px-4 max-w-4xl mx-auto">
-          <h1 className="text-giga font-bold mb-6 leading-tight">
+          <h1 className="text-giga font-semibold mb-6 leading-tight">
             {title}
           </h1>
           

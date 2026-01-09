@@ -21,7 +21,7 @@ export default function CTAButton({
   fullWidth = false,
   disabled = false
 }: CTAButtonProps) {
-  const baseClasses = 'inline-block font-bold rounded-full transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 text-white';
+  const baseClasses = 'inline-block font-medium rounded-full transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 text-white';
   
   const sizeClasses = {
     sm: 'px-6 py-3 text-sm',

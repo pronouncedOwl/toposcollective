@@ -13,7 +13,7 @@ export type RouteContext = {
 
 export async function PUT(request: NextRequest, context: RouteContext) {
   const params = await context.params;
-  const auth = ensureAdminRequest(request);
+  const auth = await ensureAdminRequest(request);
   if (!auth.authorized) {
     return auth.response;
   }
@@ -44,7 +44,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
 
 export async function DELETE(request: NextRequest, context: RouteContext) {
   const params = await context.params;
-  const auth = ensureAdminRequest(request);
+  const auth = await ensureAdminRequest(request);
   if (!auth.authorized) {
     return auth.response;
   }

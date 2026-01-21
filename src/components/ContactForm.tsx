@@ -175,7 +175,7 @@ export default function ContactForm({ className = "" }: ContactFormProps) {
 
       {submitStatus === 'success' && (
         <div className="bg-green-50 border border-green-200 rounded-md p-4">
-          <p className="text-green-800">Thank you! Your message has been sent successfully. We'll get back to you soon.</p>
+          <p className="text-green-800">Thank you! Your message has been sent successfully. We&apos;ll get back to you soon.</p>
         </div>
       )}
 

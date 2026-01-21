@@ -3,14 +3,15 @@ import { z } from 'zod';
 const statusEnum = z.enum(['coming_soon', 'completed']);
 
 const optionalString = z
-  .string()
-  .trim()
-  .max(500)
-  .optional()
+  .preprocess((value) => (value === null ? '' : value), z.string().trim().max(500).optional())
+  .transform((value) => (value === undefined || value === '' ? null : value));
+
+const optionalLongString = z
+  .preprocess((value) => (value === null ? '' : value), z.string().trim().max(5000).optional())
   .transform((value) => (value === undefined || value === '' ? null : value));
 
 const numericField = z
-  .union([z.string(), z.number()])
+  .union([z.string(), z.number(), z.null()])
   .transform((value) => {
     if (value === '' || value === null || value === undefined) {
       return null;
@@ -25,10 +26,12 @@ export const unitInputSchema = z.object({
   id: z.string().uuid().optional(),
   name: z.string().min(1).max(200),
   unitCode: optionalString,
+  price: numericField,
+  soldPrice: numericField,
   bedrooms: numericField,
   bathrooms: numericField,
   squareFeet: z
-    .union([z.string(), z.number()])
+    .union([z.string(), z.number(), z.null()])
     .transform((value) => {
       if (value === '' || value === null || value === undefined) {
         return null;
@@ -36,7 +39,18 @@ export const unitInputSchema = z.object({
       const num = typeof value === 'string' ? Number(value) : value;
       return Number.isFinite(num) ? Math.round(num) : null;
     }),
+  timeOnMarketDays: z
+    .union([z.string(), z.number(), z.null()])
+    .transform((value) => {
+      if (value === '' || value === null || value === undefined) {
+        return null;
+      }
+      const num = typeof value === 'string' ? Number(value) : value;
+      return Number.isFinite(num) ? Math.max(0, Math.trunc(num)) : null;
+    }),
   description: optionalString,
+  shortDescription: optionalString,
+  longDescription: optionalLongString,
   floorplanUrl: optionalString,
   availabilityStatus: optionalString,
   sortOrder: z.number().int().optional(),
@@ -67,8 +81,7 @@ export const projectInputSchema = z.object({
     return Number.isFinite(num) ? Math.max(0, Math.trunc(num)) : null;
   }),
   shortDescription: optionalString,
-  longDescription: optionalString,
-  heroImageUrl: optionalString,
+  longDescription: optionalLongString,
   featured: z.boolean().optional(),
   sortOrder: z.number().int().optional(),
   metadata: z.record(z.any()).optional(),
@@ -77,25 +90,6 @@ export const projectInputSchema = z.object({
 
 export type ProjectInput = z.infer<typeof projectInputSchema>;
 export type UnitInput = z.infer<typeof unitInputSchema>;
-
-export const projectPhotoSchema = z.object({
-  role: z.enum(['hero', 'gallery', 'progress', 'floorplan', 'misc']).default('gallery'),
-  storagePath: z.string().min(1),
-  altText: optionalString,
-  caption: optionalString,
-  sortOrder: z.number().int().optional(),
-  metadata: z.record(z.any()).optional(),
-});
-
-export const photoUploadRequestSchema = z.object({
-  filename: z.string().min(3),
-  contentType: z.string().min(3),
-  role: z.enum(['hero', 'gallery', 'progress', 'floorplan', 'misc']).optional(),
-  altText: optionalString,
-  caption: optionalString,
-  sortOrder: z.number().int().optional(),
-  metadata: z.record(z.any()).optional(),
-});
 
 const nullify = <T>(value: T | null | undefined) => (value === undefined ? null : value);
 
@@ -115,7 +109,6 @@ export const mapProjectInputToRow = (input: ProjectInput) => ({
   total_units: input.totalUnits ?? null,
   short_description: nullify(input.shortDescription),
   long_description: nullify(input.longDescription),
-  hero_image_url: nullify(input.heroImageUrl),
   featured: input.featured ?? false,
   sort_order: input.sortOrder ?? 0,
   metadata: input.metadata ?? {},
@@ -126,10 +119,15 @@ export const mapUnitInputToRow = (unit: UnitInput, projectId: string) => ({
   project_id: projectId,
   name: unit.name,
   unit_code: unit.unitCode,
+  price: unit.price,
+  sold_price: unit.soldPrice,
   bedrooms: unit.bedrooms,
   bathrooms: unit.bathrooms,
   square_feet: unit.squareFeet,
+  time_on_market_days: unit.timeOnMarketDays,
   description: unit.description,
+  short_description: nullify(unit.shortDescription),
+  long_description: nullify(unit.longDescription),
   floorplan_url: unit.floorplanUrl,
   availability_status: unit.availabilityStatus,
   sort_order: unit.sortOrder ?? 0,

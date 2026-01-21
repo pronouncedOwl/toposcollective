@@ -99,7 +99,7 @@ export default function TeamPage() {
               {/* Left Column */}
               <div>
                 <p className="text-sm text-[#3b7d98] font-semibold tracking-wider uppercase mb-4">
-                  we're better together
+                  we&apos;re better together
                 </p>
                 <h2 className="text-4xl font-bold text-[#3b7d98]">
                   Partnership is everything.

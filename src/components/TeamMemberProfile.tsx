@@ -73,7 +73,7 @@ export default function TeamMemberProfile({
               <div className="space-y-4">
                 <div>
                   <h6 className="text-lg font-bold text-gray-900 leading-relaxed">
-                    "{testimonial.quote}"
+                    &ldquo;{testimonial.quote}&rdquo;
                   </h6>
                 </div>
 

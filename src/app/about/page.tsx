@@ -82,11 +82,11 @@ export default function AboutPage() {
               </p>
               
               <p>
-                We at Topos Collective are crafting exceptional homes while remaining dedicated to building vibrant communities in Austin, Texas. Founded with a vision to make a meaningful impact, we strive to create neighborhoods where people thrive and families flourish. Our commitment extends beyond constructing houses; it's about fostering a sense of belonging and enhancing the quality of life for all. By prioritizing density and compressing costs without compromising quality, we aim to make homeownership attainable for more individuals and families in the Austin area in the long run.
+                We at Topos Collective are crafting exceptional homes while remaining dedicated to building vibrant communities in Austin, Texas. Founded with a vision to make a meaningful impact, we strive to create neighborhoods where people thrive and families flourish. Our commitment extends beyond constructing houses; it&apos;s about fostering a sense of belonging and enhancing the quality of life for all. By prioritizing density and compressing costs without compromising quality, we aim to make homeownership attainable for more individuals and families in the Austin area in the long run.
               </p>
               
               <p>
-                At Topos Collective, we understand the importance of delivering value, not only to our homeowners but also to our investors. Together, we're building more than just homes; we're building a legacy of positive change in our community.
+                At Topos Collective, we understand the importance of delivering value, not only to our homeowners but also to our investors. Together, we&apos;re building more than just homes; we&apos;re building a legacy of positive change in our community.
               </p>
             </div>
           </div>
@@ -152,15 +152,15 @@ export default function AboutPage() {
             
             <div className="space-y-6 text-lg text-gray-700 leading-relaxed opacity-80">
               <p className="text-center text-xl">
-                What's in a name?
+                What&apos;s in a name?
               </p>
               
               <p className="text-center italic">
-                From Ancient Greek topos means "place".
+                From Ancient Greek topos means &quot;place&quot;.
               </p>
               
               <p>
-                In simple terms, "Topos" refers to a place or location. A topos in topology is a way of studying and categorizing spaces, which are mathematical objects that capture the idea of "shape" or "structure."
+                In simple terms, &quot;Topos&quot; refers to a place or location. A topos in topology is a way of studying and categorizing spaces, which are mathematical objects that capture the idea of &quot;shape&quot; or &quot;structure.&quot;
               </p>
               
               <p>
@@ -172,7 +172,7 @@ export default function AboutPage() {
               </p>
               
               <p className="text-center italic">
-                Yeah that's right. We just nerded out that hard.
+                Yeah that&apos;s right. We just nerded out that hard.
               </p>
               
               <p>
@@ -180,7 +180,7 @@ export default function AboutPage() {
               </p>
               
               <p>
-                Guided by the belief that each "Topos" signifies a unique place, the company employs the theory of topology as a guiding framework in designing and constructing their developments. Topos Collective meticulously applies these principles to craft environments that not only reflect aesthetic excellence but also maximize the potential for community cohesion and sustainable living.
+                Guided by the belief that each &quot;Topos&quot; signifies a unique place, the company employs the theory of topology as a guiding framework in designing and constructing their developments. Topos Collective meticulously applies these principles to craft environments that not only reflect aesthetic excellence but also maximize the potential for community cohesion and sustainable living.
               </p>
             </div>
           </div>

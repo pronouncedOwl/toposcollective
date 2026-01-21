@@ -1,21 +1,70 @@
 import { NextRequest } from 'next/server';
-import { unauthorizedResponse } from './api-response';
+import { forbiddenResponse, unauthorizedResponse } from './api-response';
+import { supabaseAdmin } from './supabase-admin';
+import { createSupabaseRequestClient, createSupabaseServerClient } from './supabase-server';
 
-const ADMIN_API_TOKEN = process.env.ADMIN_API_TOKEN;
+export type AdminRole = 'admin' | 'employee';
 
-export function ensureAdminRequest(req: NextRequest) {
-  if (!ADMIN_API_TOKEN) {
-    console.warn('ADMIN_API_TOKEN is not configured. Allowing admin requests by default.');
-    return { authorized: true as const };
+export type AdminUser = {
+  email: string;
+  role: AdminRole;
+};
+
+const fetchRoleByEmail = async (email: string): Promise<AdminRole | null> => {
+  const { data, error } = await supabaseAdmin
+    .from('roles')
+    .select('role')
+    .eq('email', email)
+    .maybeSingle();
+
+  if (error) {
+    console.error('[admin-auth] Failed to fetch role:', error);
+    return null;
   }
 
-  const authHeader = req.headers.get('authorization') || '';
-  const expected = `Bearer ${ADMIN_API_TOKEN}`;
+  return (data?.role as AdminRole | undefined) ?? null;
+};
 
-  if (authHeader === expected) {
-    return { authorized: true as const };
+export async function getAdminUser(): Promise<AdminUser | null> {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase.auth.getUser();
+
+  if (error || !data.user?.email) {
+    return null;
   }
 
-  return { authorized: false as const, response: unauthorizedResponse('Invalid admin credentials') };
+  const role = await fetchRoleByEmail(data.user.email);
+  if (!role) return null;
+
+  return { email: data.user.email, role };
+}
+
+export async function ensureAdminRequest(req: NextRequest) {
+  const supabase = createSupabaseRequestClient(req);
+  const { data, error } = await supabase.auth.getUser();
+
+  if (error || !data.user?.email) {
+    return { authorized: false as const, response: unauthorizedResponse('Not authenticated') };
+  }
+
+  const role = await fetchRoleByEmail(data.user.email);
+  if (!role) {
+    return { authorized: false as const, response: unauthorizedResponse('Access not approved') };
+  }
+
+  return { authorized: true as const, role, email: data.user.email };
+}
+
+export async function ensureAdminRole(req: NextRequest, requiredRole: AdminRole) {
+  const auth = await ensureAdminRequest(req);
+  if (!auth.authorized) {
+    return auth;
+  }
+
+  if (auth.role !== requiredRole) {
+    return { authorized: false as const, response: forbiddenResponse('Insufficient role') };
+  }
+
+  return auth;
 }
 

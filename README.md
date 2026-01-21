@@ -36,7 +36,7 @@ This repo now powers a Supabase-backed CMS for tracking projects, units, and med
 
    - Open the Supabase SQL editor.
    - Paste `supabase/projects_schema.sql` and run it once per environment.
-   - The script creates the tables (`projects`, `units`, `project_photos`, `unit_photos`), enums, triggers, RLS policies, and the `project-assets` bucket with the right storage policies.
+   - The script creates the tables (`projects`, `units`, `unit_photos`), enums, triggers, RLS policies, and the `project-assets` bucket with the right storage policies.
 
 4. **Run locally**
 

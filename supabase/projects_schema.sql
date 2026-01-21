@@ -14,7 +14,7 @@ exception
 end $$;
 
 do $$ begin
-  create type photo_role as enum ('hero', 'gallery', 'progress', 'floorplan', 'misc');
+  create type photo_role as enum ('hero', 'main', 'gallery', 'progress', 'floorplan', 'misc');
 exception
   when duplicate_object then null;
 end $$;
@@ -72,6 +72,8 @@ create table if not exists public.units (
   bedrooms numeric(4,2) check (bedrooms >= 0),
   bathrooms numeric(4,2) check (bathrooms >= 0),
   square_feet integer check (square_feet >= 0),
+  sold_price numeric(12, 2),
+  time_on_market_days integer check (time_on_market_days >= 0),
   description text,
   floorplan_url text,
   availability_status text,
@@ -89,7 +91,26 @@ before update on public.units
 for each row
 execute function set_updated_at();
 
--- 5. Project photos table ------------------------------------------------------
+-- 5. Unit photos table ---------------------------------------------------------
+create table if not exists public.unit_photos (
+  id uuid primary key default gen_random_uuid(),
+  unit_id uuid not null references public.units(id) on delete cascade,
+  role photo_role not null default 'gallery',
+  storage_path text not null,
+  alt_text text,
+  caption text,
+  sort_order integer default 0,
+  metadata jsonb default '{}'::jsonb,
+  created_at timestamptz not null default timezone('utc', now())
+);
+
+alter table if exists public.unit_photos
+  add column if not exists role photo_role not null default 'gallery';
+
+create index if not exists unit_photos_unit_idx on public.unit_photos (unit_id);
+create index if not exists unit_photos_role_idx on public.unit_photos (role);
+
+-- 6. Project photos table ------------------------------------------------------
 create table if not exists public.project_photos (
   id uuid primary key default gen_random_uuid(),
   project_id uuid not null references public.projects(id) on delete cascade,
@@ -105,19 +126,19 @@ create table if not exists public.project_photos (
 create index if not exists project_photos_project_idx on public.project_photos (project_id);
 create index if not exists project_photos_role_idx on public.project_photos (role);
 
--- 6. Unit photos table ---------------------------------------------------------
-create table if not exists public.unit_photos (
+-- 6b. Gallery photos table ------------------------------------------------------
+create table if not exists public.gallery_photos (
   id uuid primary key default gen_random_uuid(),
-  unit_id uuid not null references public.units(id) on delete cascade,
   storage_path text not null,
   alt_text text,
   caption text,
+  size text not null default 'normal' check (size in ('normal', 'tall', 'wide')),
   sort_order integer default 0,
   metadata jsonb default '{}'::jsonb,
   created_at timestamptz not null default timezone('utc', now())
 );
 
-create index if not exists unit_photos_unit_idx on public.unit_photos (unit_id);
+create index if not exists gallery_photos_sort_idx on public.gallery_photos (sort_order);
 
 -- 7. Views (optional helpers) --------------------------------------------------
 create or replace view public.project_with_units as
@@ -129,6 +150,8 @@ select
         'id', u.id,
         'name', u.name,
         'unit_code', u.unit_code,
+        'sold_price', u.sold_price,
+        'time_on_market_days', u.time_on_market_days,
         'bedrooms', u.bedrooms,
         'bathrooms', u.bathrooms,
         'square_feet', u.square_feet,
@@ -148,8 +171,9 @@ group by p.id;
 -- 8. Row Level Security --------------------------------------------------------
 alter table public.projects enable row level security;
 alter table public.units enable row level security;
-alter table public.project_photos enable row level security;
 alter table public.unit_photos enable row level security;
+alter table public.project_photos enable row level security;
+alter table public.gallery_photos enable row level security;
 
 -- Service role full access
 do $$ begin
@@ -171,6 +195,15 @@ do $$ begin
 exception when duplicate_object then null; end $$;
 
 do $$ begin
+  create policy unit_photos_service_role_full
+  on public.unit_photos
+  as permissive
+  for all
+  using (auth.role() = 'service_role')
+  with check (auth.role() = 'service_role');
+exception when duplicate_object then null; end $$;
+
+do $$ begin
   create policy project_photos_service_role_full
   on public.project_photos
   as permissive
@@ -180,8 +213,8 @@ do $$ begin
 exception when duplicate_object then null; end $$;
 
 do $$ begin
-  create policy unit_photos_service_role_full
-  on public.unit_photos
+  create policy gallery_photos_service_role_full
+  on public.gallery_photos
   as permissive
   for all
   using (auth.role() = 'service_role')
@@ -210,19 +243,6 @@ do $$ begin
 exception when duplicate_object then null; end $$;
 
 do $$ begin
-  create policy project_photos_public_read
-  on public.project_photos
-  for select
-  using (
-    exists (
-      select 1 from public.projects p
-      where p.id = project_photos.project_id
-        and p.is_public
-    )
-  );
-exception when duplicate_object then null; end $$;
-
-do $$ begin
   create policy unit_photos_public_read
   on public.unit_photos
   for select
@@ -235,6 +255,27 @@ do $$ begin
         and p.is_public
     )
   );
+exception when duplicate_object then null; end $$;
+
+do $$ begin
+  create policy project_photos_public_read
+  on public.project_photos
+  for select
+  using (
+    exists (
+      select 1
+      from public.projects p
+      where p.id = project_photos.project_id
+        and p.is_public
+    )
+  );
+exception when duplicate_object then null; end $$;
+
+do $$ begin
+  create policy gallery_photos_public_read
+  on public.gallery_photos
+  for select
+  using (true);
 exception when duplicate_object then null; end $$;
 
 -- 9. Storage bucket ------------------------------------------------------------

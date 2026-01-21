@@ -6,7 +6,7 @@ import {
   successResponse,
 } from '../../../lib/api-response';
 import { ensureAdminRequest } from '../../../lib/admin-auth';
-import { supabaseAdmin } from '../../../lib/supabase';
+import { supabaseAdmin } from '../../../lib/supabase-admin';
 import {
   mapProjectInputToRow,
   projectInputSchema,
@@ -41,10 +41,14 @@ export async function GET(request: NextRequest) {
       return badRequestResponse('Invalid status filter');
     }
 
+    const auth = await ensureAdminRequest(request);
+    const isAdmin = auth.authorized;
+    const isPublicFilter = isAdmin ? (isPublic === null ? null : isPublic === 'true') : true;
+
     const query = await fetchProjects({
       status,
       featured: featured || null,
-      isPublic: isPublic === null ? null : isPublic === 'true',
+      isPublic: isPublicFilter,
       limit,
       ...include,
     });
@@ -64,7 +68,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const auth = ensureAdminRequest(request);
+  const auth = await ensureAdminRequest(request);
   if (!auth.authorized) {
     return auth.response;
   }

@@ -36,7 +36,7 @@ export default function InvestorsPage() {
               </p>
               
               <p>
-                When you invest with us, you're joining a collective that values long-term success, rooted in trust and collaboration. Together, we craft enduring value, driven by our shared commitment to excellence and meaningful partnerships.
+                When you invest with us, you&apos;re joining a collective that values long-term success, rooted in trust and collaboration. Together, we craft enduring value, driven by our shared commitment to excellence and meaningful partnerships.
               </p>
             </div>
           </LazySection>

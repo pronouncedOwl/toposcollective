@@ -1,8 +1,8 @@
-import ProjectsManager from './ProjectsManager';
+import ProjectsList from './ProjectsList';
 
 export const dynamic = 'force-dynamic';
 
 export default function AdminProjectsPage() {
-  return <ProjectsManager />;
+  return <ProjectsList />;
 }
 

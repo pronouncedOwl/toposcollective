@@ -128,7 +128,7 @@ export default function WhatWeDoPage() {
                 What We Do
               </h2>
               <p className="text-lg text-gray-700 max-w-4xl mx-auto">
-                We believe that the home should be all about the customer. For the past 24 years our team has been dedicated to building homes that exceed the customer's expectations. Eco-friendly design+materials, setting expectations, superior communication and timely delivery are required. We then provide expert guidance to make each projects a success.
+                We believe that the home should be all about the customer. For the past 24 years our team has been dedicated to building homes that exceed the customer&apos;s expectations. Eco-friendly design+materials, setting expectations, superior communication and timely delivery are required. We then provide expert guidance to make each projects a success.
               </p>
             </div>
 
@@ -167,7 +167,7 @@ export default function WhatWeDoPage() {
                       <p className="text-lg font-bold text-gray-900">Design</p>
                     </div>
                     <div className="opacity-80">
-                      <p className="text-gray-700"><span className="text-[#3b7d98] font-semibold">We curate the end result.</span> Every design decision prioritizes sustainability, functionality, and the unique needs of Austin's growing communities.</p>
+                      <p className="text-gray-700"><span className="text-[#3b7d98] font-semibold">We curate the end result.</span> Every design decision prioritizes sustainability, functionality, and the unique needs of Austin&apos;s growing communities.</p>
                     </div>
                   </div>
                 </LazySection>

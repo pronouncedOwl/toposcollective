@@ -9,7 +9,7 @@ export async function POST(
   context: { params: Promise<{ id: string }> },
 ) {
   const params = await context.params;
-  const auth = ensureAdminRequest(request);
+  const auth = await ensureAdminRequest(request);
   if (!auth.authorized) {
     return auth.response;
   }

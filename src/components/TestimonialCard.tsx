@@ -32,7 +32,7 @@ export default function TestimonialCard({
         {/* Quote */}
         <div className="max-w-2xl">
           <p className="text-xl text-gray-200 leading-relaxed">
-            "{quote}"
+            &ldquo;{quote}&rdquo;
           </p>
         </div>
         

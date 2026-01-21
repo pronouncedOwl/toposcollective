@@ -6,7 +6,7 @@ import {
   successResponse,
 } from '../../../../lib/api-response';
 import { ensureAdminRequest } from '../../../../lib/admin-auth';
-import { supabaseAdmin } from '../../../../lib/supabase';
+import { supabaseAdmin } from '../../../../lib/supabase-admin';
 import {
   mapProjectInputToRow,
   projectInputSchema,
@@ -57,7 +57,11 @@ export async function GET(request: NextRequest, context: RouteContext) {
   const params = await context.params;
   try {
     const include = parseIncludes(new URL(request.url).searchParams.get('include'));
-    const { data, error } = await fetchProjectByIdentifier(params.id, include);
+    const auth = await ensureAdminRequest(request);
+    const isAdmin = auth.authorized;
+    const { data, error } = await fetchProjectByIdentifier(params.id, include, {
+      isPublic: isAdmin ? null : true,
+    });
 
     if (error || !data) {
       console.error('[projects/:id][GET] Error fetching project:', error);
@@ -73,7 +77,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
 
 export async function PUT(request: NextRequest, context: RouteContext) {
   const params = await context.params;
-  const auth = ensureAdminRequest(request);
+  const auth = await ensureAdminRequest(request);
   if (!auth.authorized) {
     return auth.response;
   }
@@ -121,7 +125,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
 
 export async function DELETE(request: NextRequest, context: RouteContext) {
   const params = await context.params;
-  const auth = ensureAdminRequest(request);
+  const auth = await ensureAdminRequest(request);
   if (!auth.authorized) {
     return auth.response;
   }

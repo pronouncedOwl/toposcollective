@@ -24,6 +24,7 @@ This repo now powers a Supabase-backed CMS for tracking projects, units, and med
    Copy `env.example` to `.env.local` and fill in:
 
    - `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+   - `NEXT_PUBLIC_SITE_URL` (base URL for OAuth redirects; update this when you move from Vercel to the live domain)
    - `SUPABASE_SERVICE_ROLE_KEY` (server-side only)
    - `PROJECT_STORAGE_BUCKET` / `NEXT_PUBLIC_PROJECT_BUCKET` (defaults to `project-assets`)
    - `ADMIN_API_TOKEN` (optional hardening until NextAuth is wired)
@@ -31,6 +32,8 @@ This repo now powers a Supabase-backed CMS for tracking projects, units, and med
    - Existing contact-form values (`SMTP2GO_*`, `CONTACT_EMAIL`, `CLOUDFLARE_TURNSTILE_SECRET_KEY`, etc.)
 
    > ⚠️ The admin UI only includes the token if `NEXT_PUBLIC_ADMIN_API_TOKEN` is populated, so avoid using the shared-secret path in production until a true auth layer is added.
+   >
+   > When the live domain changes, update `NEXT_PUBLIC_SITE_URL` and the Supabase Auth "Site URL" + "Additional Redirect URLs" to match the new domain.
 
 3. **Provision Supabase**
 

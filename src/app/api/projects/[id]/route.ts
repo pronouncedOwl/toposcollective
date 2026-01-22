@@ -54,13 +54,17 @@ const parseIncludes = (includeParam: string | null) => {
 };
 
 export async function GET(request: NextRequest, context: RouteContext) {
-  const params = await context.params;
   try {
+    const params = await context.params;
     const include = parseIncludes(new URL(request.url).searchParams.get('include'));
     const auth = await ensureAdminRequest(request);
-    const isAdmin = auth.authorized;
+    
+    if (!auth.authorized) {
+      return auth.response;
+    }
+    
     const { data, error } = await fetchProjectByIdentifier(params.id, include, {
-      isPublic: isAdmin ? null : true,
+      isPublic: null, // Admin can see all projects
     });
 
     if (error || !data) {

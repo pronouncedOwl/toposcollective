@@ -1,7 +1,9 @@
 import { NextRequest } from 'next/server';
 import { ensureAdminRequest } from '../../../../../lib/admin-auth';
 import { badRequestResponse, errorResponse, successResponse } from '../../../../../lib/api-response';
-import { getSignedUrl } from '../../../../../lib/storage';
+import { getPublicUrl, getSignedUrl } from '../../../../../lib/storage';
+
+const isAbsoluteUrl = (value: string) => /^https?:\/\//i.test(value);
 
 export async function POST(request: NextRequest) {
   const auth = await ensureAdminRequest(request);
@@ -23,8 +25,12 @@ export async function POST(request: NextRequest) {
     const entries = await Promise.all(
       paths.map(async (path: string) => {
         try {
-          const url = await getSignedUrl(path, expiresInSeconds);
-          return url ? [path, url] : null;
+          if (isAbsoluteUrl(path)) {
+            return [path, path];
+          }
+          const signedUrl = await getSignedUrl(path, expiresInSeconds);
+          const fallbackUrl = signedUrl || getPublicUrl(path);
+          return fallbackUrl ? [path, fallbackUrl] : null;
         } catch (error) {
           console.warn('[photos/signed/batch] Failed to sign path', path, error);
           return null;

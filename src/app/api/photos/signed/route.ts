@@ -1,7 +1,9 @@
 import { NextRequest } from 'next/server';
 import { ensureAdminRequest } from '../../../../lib/admin-auth';
 import { badRequestResponse, errorResponse, successResponse } from '../../../../lib/api-response';
-import { getSignedUrl } from '../../../../lib/storage';
+import { getPublicUrl, getSignedUrl } from '../../../../lib/storage';
+
+const isAbsoluteUrl = (value: string) => /^https?:\/\//i.test(value);
 
 export async function GET(request: NextRequest) {
   const auth = await ensureAdminRequest(request);
@@ -18,11 +20,19 @@ export async function GET(request: NextRequest) {
       return badRequestResponse('path is required');
     }
 
+    if (isAbsoluteUrl(path)) {
+      return successResponse({ url: path });
+    }
+
     const expiresInSeconds = expiresParam ? Number(expiresParam) : undefined;
     const signedUrl = await getSignedUrl(path, Number.isFinite(expiresInSeconds) ? expiresInSeconds : undefined);
 
     if (!signedUrl) {
-      return errorResponse('Failed to create signed URL');
+      const publicUrl = getPublicUrl(path);
+      if (!publicUrl) {
+        return errorResponse('Failed to create signed URL');
+      }
+      return successResponse({ url: publicUrl });
     }
 
     return successResponse({ url: signedUrl });

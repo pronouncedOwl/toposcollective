@@ -43,7 +43,8 @@ export default function AdminLoginPage() {
   const handleSignIn = async () => {
     setLoading(true);
     try {
-      const redirectTo = `${window.location.origin}/admin/auth/callback?next=/admin/projects`;
+      const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin;
+      const redirectTo = `${baseUrl}/admin/auth/callback?next=/admin/projects`;
       const { error } = await supabaseBrowser.auth.signInWithOAuth({
         provider: 'google',
         options: { redirectTo },

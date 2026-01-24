@@ -170,13 +170,21 @@ export default function ProjectsShowcaseClient({
                           <div className="space-y-3 text-gray-600">
                             <p className="text-base">{project.description || project.details}</p>
                             <p className="text-sm text-gray-500">{buildUnitSummary(project)}</p>
-                            <button
-                              className="inline-flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.3em] text-gray-400 transition hover:text-gray-600"
-                              onClick={() => toggleExpanded(project.id)}
-                            >
-                              Expand project
-                              <span aria-hidden>→</span>
-                            </button>
+                            <div className="flex flex-wrap items-center gap-4">
+                              <button
+                                className="inline-flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.3em] text-gray-400 transition hover:text-gray-600"
+                                onClick={() => toggleExpanded(project.id)}
+                              >
+                                Expand project
+                                <span aria-hidden>→</span>
+                              </button>
+                              <Link
+                                href={`/project/${project.slug}`}
+                                className="inline-flex items-center gap-2 text-sm font-semibold text-[#3b7d98] underline underline-offset-4 transition hover:text-[#2d5f75]"
+                              >
+                                View project page
+                              </Link>
+                            </div>
                           </div>
                           {heroStrip.length > 0 && (
                             <div className="flex h-24 w-full gap-1 overflow-hidden rounded-2xl bg-gray-100 shadow-md md:h-28">
@@ -214,18 +222,34 @@ export default function ProjectsShowcaseClient({
 
                     {isExpanded && (
                       <div id={`project-${project.id}`} className="mt-8">
-                        {project.longDescription && (
-                          <p className="mb-8 max-w-3xl text-lg text-gray-600">{project.longDescription}</p>
-                        )}
+                        <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
+                          <div className="max-w-3xl">
+                            {project.longDescription && (
+                              <p className="text-lg text-gray-600">{project.longDescription}</p>
+                            )}
+                          </div>
+                          <Link
+                            href={`/project/${project.slug}`}
+                            className="inline-flex items-center gap-2 rounded-full border border-[#3b7d98] bg-white px-4 py-2 text-sm font-semibold text-[#3b7d98] transition hover:bg-[#3b7d98] hover:text-white"
+                          >
+                            View project page →
+                          </Link>
+                        </div>
 
                         <div className="grid gap-10 md:grid-cols-2">
-                          {project.units.map((unit) => {
+                          {project.units.map((unit, unitIndex) => {
                             const pageKey = getUnitPageKey(project.id, unit.id);
                             const { page, start, images, totalPages } = paginatedImages(unit, pageKey);
                             const unitMain = unit.heroImage || unit.gallery[0]?.url || '';
                             const unitSlug = unit.unitCode || unit.id;
+                            const isLastAndOdd = unitIndex === project.units.length - 1 && project.units.length % 2 === 1;
                             return (
-                              <div key={unit.id} className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+                              <div
+                                key={unit.id}
+                                className={`rounded-xl border border-gray-200 bg-white p-5 shadow-sm ${
+                                  isLastAndOdd ? 'md:col-span-2 md:mx-auto md:max-w-[calc(50%-1.25rem)]' : ''
+                                }`}
+                              >
                                 <div className="mb-6">
                                   <p className="text-xs uppercase tracking-[0.3em] text-gray-400">Unit</p>
                                   <h3 className="mb-2 text-xl font-semibold text-gray-900">{unit.name}</h3>

@@ -7,6 +7,7 @@ type PublicUnit = NonNullable<PublicProject['units']>[number];
 
 export type ProjectShowcaseItem = {
   id: string;
+  slug: string;
   name: string;
   details: string;
   completionLabel: string;
@@ -46,6 +47,30 @@ export type ProjectUnitPageData = {
   address: string;
   mapUrl: string | null;
   isStaticMap: boolean;
+};
+
+export type ProjectPageData = {
+  project: PublicProject;
+  heroImages: { url: string; alt: string }[];
+  gallery: { id: string; url: string; alt: string }[];
+  completionLabel: string;
+  address: string;
+  mapUrl: string | null;
+  isStaticMap: boolean;
+  units: {
+    id: string;
+    name: string;
+    unitCode: string;
+    price: number | null;
+    formattedPrice: string | null;
+    squareFeet: number | null;
+    bedrooms: number | null;
+    bathrooms: number | null;
+    shortDescription: string | null;
+    details: string;
+    heroImage: string | null;
+    availability: string;
+  }[];
 };
 
 const normalizeSlug = (value: string) => value.trim().toLowerCase().replace(/\s+/g, '-');
@@ -201,6 +226,7 @@ const mapProjectToShowcase = async (project: PublicProject): Promise<ProjectShow
 
   return {
     id: project.id,
+    slug: project.slug,
     name: project.name,
     details: buildDetails(project),
     description: project.short_description ?? null,
@@ -282,5 +308,97 @@ export const getProjectUnitPageData = async (
     address,
     mapUrl,
     isStaticMap: Boolean(mapsApiKey),
+  };
+};
+
+export const getProjectPageData = async (slug: string): Promise<ProjectPageData | null> => {
+  // Fetch both statuses to find the project
+  const [completedProjects, comingSoonProjects] = await Promise.all([
+    getPublicProjectsByStatus('completed'),
+    getPublicProjectsByStatus('coming_soon'),
+  ]);
+  const allProjects = [...completedProjects, ...comingSoonProjects];
+
+  const normalizedSlug = normalizeSlug(slug);
+  const project = allProjects.find(
+    (p) => p.slug === slug || p.slug === normalizedSlug || (p.slug && normalizeSlug(p.slug) === normalizedSlug)
+  );
+
+  if (!project) {
+    return null;
+  }
+
+  const address = formatAddress(project);
+  const mapUrl = address ? getStaticMapUrl(address) : null;
+  const completionLabel = formatCompletionLabel(project);
+
+  // Resolve project photos
+  const sortedProjectPhotos = sortPhotos(project.project_photos || []);
+  const heroImages = (
+    await Promise.all(
+      sortedProjectPhotos
+        .filter((photo) => photo.role === 'hero' || photo.role === 'main')
+        .slice(0, 4)
+        .map(async (photo) => {
+          const url = await resolveImageUrl(photo.storage_path);
+          if (!url) return null;
+          return {
+            url,
+            alt: photo.alt_text || `${project.name} photo`,
+          };
+        })
+    )
+  ).filter(Boolean) as { url: string; alt: string }[];
+
+  const gallery = (
+    await Promise.all(
+      sortedProjectPhotos.map(async (photo) => {
+        const url = await resolveImageUrl(photo.storage_path);
+        if (!url) return null;
+        return {
+          id: photo.id,
+          url,
+          alt: photo.alt_text || `${project.name} photo`,
+        };
+      })
+    )
+  ).filter(Boolean) as { id: string; url: string; alt: string }[];
+
+  // Resolve unit data
+  const units = await Promise.all(
+    (project.units || []).map(async (unit) => {
+      const sortedUnitPhotos = sortPhotos(unit.unit_photos || []);
+      const heroPhotoPath =
+        sortedUnitPhotos.find((photo) => photo.role === 'main')?.storage_path ||
+        sortedUnitPhotos[0]?.storage_path ||
+        '';
+      const heroImage = await resolveImageUrl(heroPhotoPath);
+
+      return {
+        id: unit.id,
+        name: unit.name,
+        unitCode: unit.unit_code || '',
+        price: unit.price ?? null,
+        formattedPrice: formatPrice(unit.price ?? null),
+        squareFeet: unit.square_feet ?? null,
+        bedrooms: unit.bedrooms ?? null,
+        bathrooms: unit.bathrooms ?? null,
+        shortDescription: unit.short_description ?? null,
+        details: buildUnitDetails(unit),
+        heroImage,
+        availability: unit.availability_status || 'Available',
+      };
+    })
+  );
+
+  return {
+    project,
+    heroImages,
+    gallery,
+    completionLabel,
+    address,
+    mapUrl,
+    isStaticMap: Boolean(mapsApiKey),
+    units,
   };
 };

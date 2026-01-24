@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useTurnstile } from './TurnstileProvider';
 import CTAButton from './CTAButton';
 
@@ -27,6 +27,13 @@ export default function ContactForm({ className = "" }: ContactFormProps) {
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const { isReady: turnstileLoaded } = useTurnstile();
 
+  const handleTurnstileCallback = useCallback((token: string) => {
+    setFormData(prev => ({
+      ...prev,
+      cfTurnstileResponse: token
+    }));
+  }, []);
+
   // Render Turnstile widget when ready
   useEffect(() => {
     if (turnstileLoaded && window.turnstile) {
@@ -39,20 +46,13 @@ export default function ContactForm({ className = "" }: ContactFormProps) {
         });
       }
     }
-  }, [turnstileLoaded]);
+  }, [turnstileLoaded, handleTurnstileCallback]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
       [name]: value
-    }));
-  };
-
-  const handleTurnstileCallback = (token: string) => {
-    setFormData(prev => ({
-      ...prev,
-      cfTurnstileResponse: token
     }));
   };
 

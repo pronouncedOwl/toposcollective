@@ -109,13 +109,13 @@ export default function GalleryClient({ photos }: GalleryClientProps) {
               ▶
             </button>
 
-            <div className="relative h-[80vh] w-full">
+            <div className="relative">
               <Image
                 src={photos[selectedImage].url}
                 alt={photos[selectedImage].alt}
-                fill
-                sizes="100vw"
-                className="object-contain rounded-lg"
+                width={1200}
+                height={800}
+                className="h-auto max-h-[80vh] w-full rounded-lg object-contain"
               />
             </div>
           </div>

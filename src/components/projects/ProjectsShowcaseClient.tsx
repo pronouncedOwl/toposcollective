@@ -19,6 +19,10 @@ type ProjectsShowcaseClientProps = {
 };
 
 const imagesPerPage = 4;
+
+// Signed URLs with tokens don't work well with Next.js Image optimization
+const isSignedUrl = (url: string) => url.includes('token=');
+
 const formatPrice = (value: number | null) => {
   if (value === null || Number.isNaN(value)) return null;
   return new Intl.NumberFormat('en-US', {
@@ -196,6 +200,7 @@ export default function ProjectsShowcaseClient({
                                     fill
                                     sizes="(min-width: 768px) 25vw, 50vw"
                                     className="object-cover"
+                                    unoptimized={isSignedUrl(image.url)}
                                   />
                                 </div>
                               ))}
@@ -213,6 +218,7 @@ export default function ProjectsShowcaseClient({
                                 fill
                                 sizes="(min-width: 768px) 25vw, 50vw"
                                 className="object-cover"
+                                unoptimized={isSignedUrl(image.url)}
                               />
                             </div>
                           ))}
@@ -279,6 +285,7 @@ export default function ProjectsShowcaseClient({
                                         fill
                                         className="object-cover blur-xl scale-110 opacity-60"
                                         aria-hidden
+                                        unoptimized={isSignedUrl(unitMain)}
                                       />
                                       <div className="absolute inset-0 flex items-center justify-center p-4">
                                         <Image
@@ -287,6 +294,7 @@ export default function ProjectsShowcaseClient({
                                           fill
                                           sizes="(min-width: 1024px) 50vw, 100vw"
                                           className="object-contain"
+                                          unoptimized={isSignedUrl(unitMain)}
                                         />
                                       </div>
                                     </div>
@@ -302,7 +310,7 @@ export default function ProjectsShowcaseClient({
                                           className="relative aspect-square overflow-hidden rounded-lg bg-gray-200 transition hover:opacity-90"
                                           onClick={() => openModal(project.id, unit.id, start + imageIndex)}
                                         >
-                                          <Image src={image.url} alt={image.alt} fill sizes="(min-width: 768px) 25vw, 50vw" className="object-cover" />
+                                          <Image src={image.url} alt={image.alt} fill sizes="(min-width: 768px) 25vw, 50vw" className="object-cover" unoptimized={isSignedUrl(image.url)} />
                                         </button>
                                       ))}
                                     </div>
@@ -391,6 +399,7 @@ export default function ProjectsShowcaseClient({
                 width={1200}
                 height={800}
                 className="h-auto max-h-[80vh] w-full rounded-lg object-contain"
+                unoptimized={isSignedUrl(selectedUnit.gallery[currentImageIndex].url)}
               />
             </div>
 
@@ -404,7 +413,7 @@ export default function ProjectsShowcaseClient({
                       index === currentImageIndex ? 'border-white' : 'border-transparent opacity-60'
                     }`}
                   >
-                    <Image src={image.url} alt={image.alt} fill sizes="80px" className="object-cover" />
+                    <Image src={image.url} alt={image.alt} fill sizes="80px" className="object-cover" unoptimized={isSignedUrl(image.url)} />
                   </button>
                 ))}
               </div>

@@ -12,6 +12,9 @@ const maxRows = 4;
 const rowHeight = 192;
 const rowGap = 16;
 
+// Signed URLs with tokens don't work well with Next.js Image optimization
+const isSignedUrl = (url: string) => url.includes('token=');
+
 export default function UnitGallery({ images }: UnitGalleryProps) {
   const [expanded, setExpanded] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
@@ -53,6 +56,7 @@ export default function UnitGallery({ images }: UnitGalleryProps) {
               alt={photo.alt}
               fill
               className="object-cover transition duration-300 group-hover:scale-105"
+              unoptimized={isSignedUrl(photo.url)}
             />
           </button>
         ))}
@@ -125,6 +129,7 @@ export default function UnitGallery({ images }: UnitGalleryProps) {
                 width={1200}
                 height={800}
                 className="h-auto max-h-[80vh] w-full rounded-lg object-contain"
+                unoptimized={isSignedUrl(images[selectedImageIndex].url)}
               />
             </div>
 
@@ -139,7 +144,7 @@ export default function UnitGallery({ images }: UnitGalleryProps) {
                       index === selectedImageIndex ? 'border-white' : 'border-transparent opacity-60'
                     }`}
                   >
-                    <Image src={image.url} alt={image.alt} fill sizes="80px" className="object-cover" />
+                    <Image src={image.url} alt={image.alt} fill sizes="80px" className="object-cover" unoptimized={isSignedUrl(image.url)} />
                   </button>
                 ))}
               </div>

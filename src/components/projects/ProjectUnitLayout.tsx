@@ -5,6 +5,9 @@ import CTAButton from '@/components/CTAButton';
 import UnitGallery from '@/components/UnitGallery';
 import type { ProjectUnitPageData } from '@/lib/projects-view';
 
+// Signed URLs with tokens don't work well with Next.js Image optimization
+const isSignedUrl = (url: string) => url.includes('token=');
+
 type ProjectUnitLayoutProps = {
   data: ProjectUnitPageData;
   backHref: string;
@@ -128,7 +131,7 @@ export default function ProjectUnitLayout({
               <div className="relative">
                 <div className="relative h-[340px] w-full overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-xl md:h-[420px]">
                   {heroImage ? (
-                    <Image src={heroImage} alt={`${unit.name} main`} fill sizes="100vw" className="object-contain" />
+                    <Image src={heroImage} alt={`${unit.name} main`} fill sizes="100vw" className="object-contain" unoptimized={isSignedUrl(heroImage)} />
                   ) : (
                     <div className="flex h-full w-full items-center justify-center text-sm text-gray-500">
                       No unit imagery yet
@@ -187,7 +190,7 @@ export default function ProjectUnitLayout({
                   </CTAButton>
                 </div>
                 <div className="relative h-[320px] w-full overflow-hidden rounded-xl border border-gray-200 bg-white md:h-[420px]">
-                  <Image src={floorplanUrl} alt={`${unit.name} floorplan`} fill sizes="100vw" className="object-contain" />
+                  <Image src={floorplanUrl} alt={`${unit.name} floorplan`} fill sizes="100vw" className="object-contain" unoptimized={isSignedUrl(floorplanUrl)} />
                 </div>
               </div>
             </LazySection>

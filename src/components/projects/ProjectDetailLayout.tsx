@@ -10,6 +10,9 @@ type ProjectDetailLayoutProps = {
   unitLinkBase: string;
 };
 
+// Signed URLs with tokens don't work well with Next.js Image optimization
+const isSignedUrl = (url: string) => url.includes('token=');
+
 export default function ProjectDetailLayout({ data, unitLinkBase }: ProjectDetailLayoutProps) {
   const { project, heroImages, gallery, completionLabel, address, mapUrl, isStaticMap, units } = data;
 
@@ -75,6 +78,7 @@ export default function ProjectDetailLayout({ data, unitLinkBase }: ProjectDetai
                           fill
                           sizes="(min-width: 768px) 25vw, 50vw"
                           className="object-cover"
+                          unoptimized={isSignedUrl(image.url)}
                         />
                       </div>
                     ))}
@@ -151,6 +155,7 @@ export default function ProjectDetailLayout({ data, unitLinkBase }: ProjectDetai
                               fill
                               sizes="(min-width: 1024px) 50vw, 100vw"
                               className="object-cover"
+                              unoptimized={isSignedUrl(unit.heroImage)}
                             />
                           </div>
                         )}

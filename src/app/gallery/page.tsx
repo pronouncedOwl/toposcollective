@@ -1,7 +1,13 @@
+import { unstable_noStore as noStore } from 'next/cache';
 import GalleryClient from './GalleryClient';
 import { fetchGalleryPhotos } from '@/lib/gallery-public';
 
+// Prevent caching - signed URLs expire after 1 hour
+export const revalidate = 0;
+export const dynamic = 'force-dynamic';
+
 export default async function GalleryPage() {
+  noStore();
   const photos = await fetchGalleryPhotos();
 
   return (

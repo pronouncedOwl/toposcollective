@@ -11,10 +11,12 @@ export type GalleryPhoto = {
 const resolveImageUrl = async (path?: string | null) => {
   if (!path) return null;
   if (path.startsWith('http')) return path;
-  const signedUrl = await getSignedUrl(path);
-  if (signedUrl) return signedUrl;
+  // Prefer public URLs for gallery (they don't expire)
+  // Fall back to signed URLs if bucket isn't public
   const publicUrl = getPublicUrl(path);
-  return publicUrl || null;
+  if (publicUrl) return publicUrl;
+  const signedUrl = await getSignedUrl(path);
+  return signedUrl || null;
 };
 
 export async function fetchGalleryPhotos(): Promise<GalleryPhoto[]> {

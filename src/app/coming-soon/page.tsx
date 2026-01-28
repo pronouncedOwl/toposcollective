@@ -18,7 +18,6 @@ export default async function ComingSoonPage() {
       ctaBody="Building places you want to be."
       ctaHref="/contact"
       ctaLabel="Contact Us"
-      unitLinkBase="/coming-soon/units"
     />
   );
 }

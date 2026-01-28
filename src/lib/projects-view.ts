@@ -1,5 +1,5 @@
 import { getPublicProjectsByStatus, PublicProject } from '@/lib/projects-public';
-import { getPublicUrl, getSignedUrl } from '@/lib/storage';
+import { getPublicUrl } from '@/lib/storage';
 
 const mapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
@@ -119,11 +119,10 @@ const getStaticMapUrl = (address: string) => {
   return `https://maps.google.com/maps?q=${encodedAddress}&t=&z=16&ie=UTF8&iwloc=&output=embed`;
 };
 
-const resolveImageUrl = async (path?: string | null) => {
+const resolveImageUrl = (path?: string | null) => {
   if (!path) return null;
   if (path.startsWith('http')) return path;
-  const signedUrl = await getSignedUrl(path);
-  return signedUrl || getPublicUrl(path);
+  return getPublicUrl(path);
 };
 
 const buildDetails = (project: PublicProject) => {
@@ -164,7 +163,7 @@ const mapProjectToShowcase = async (project: PublicProject): Promise<ProjectShow
       projectPhotos
         .filter((photo) => photo.role === 'hero')
         .map(async (photo) => {
-          const url = await resolveImageUrl(photo.storage_path);
+          const url = resolveImageUrl(photo.storage_path);
           if (!url) return null;
           return {
             url,
@@ -179,7 +178,7 @@ const mapProjectToShowcase = async (project: PublicProject): Promise<ProjectShow
       (project.units || []).map(async (unit) => {
         const sorted = sortPhotos(unit.unit_photos || []);
         const unitMain = sorted.find((photo) => photo.role === 'main') || sorted[0];
-        const url = await resolveImageUrl(unitMain?.storage_path || '');
+        const url = resolveImageUrl(unitMain?.storage_path || '');
         if (!url) return null;
         return {
           url,
@@ -195,7 +194,7 @@ const mapProjectToShowcase = async (project: PublicProject): Promise<ProjectShow
       const resolved = (
         await Promise.all(
           sorted.map(async (photo) => {
-            const url = await resolveImageUrl(photo.storage_path);
+            const url = resolveImageUrl(photo.storage_path);
             if (!url) return null;
             return {
               id: photo.id,
@@ -207,7 +206,7 @@ const mapProjectToShowcase = async (project: PublicProject): Promise<ProjectShow
       ).filter(Boolean) as ProjectShowcaseItem['units'][number]['gallery'];
 
       const unitMain = sorted.find((photo) => photo.role === 'main')?.storage_path || sorted[0]?.storage_path;
-      const unitMainUrl = await resolveImageUrl(unitMain || '');
+      const unitMainUrl = resolveImageUrl(unitMain || '');
 
       return {
         id: unit.id,
@@ -271,11 +270,11 @@ export const getProjectUnitPageData = async (
   const sortedPhotos = sortPhotos(unit.unit_photos || []);
   const heroPhotoPath =
     sortedPhotos.find((photo) => photo.role === 'main')?.storage_path || sortedPhotos[0]?.storage_path || '';
-  const heroImage = await resolveImageUrl(heroPhotoPath);
+  const heroImage = resolveImageUrl(heroPhotoPath);
   const gallery = (
     await Promise.all(
       sortedPhotos.map(async (photo) => {
-        const url = await resolveImageUrl(photo.storage_path);
+        const url = resolveImageUrl(photo.storage_path);
         if (!url) return null;
         return {
           id: photo.id,
@@ -286,7 +285,82 @@ export const getProjectUnitPageData = async (
     )
   ).filter(Boolean) as { id: string; url: string; alt: string }[];
 
-  const floorplanUrl = await resolveImageUrl(unit.floorplan_url || '');
+  const floorplanUrl = resolveImageUrl(unit.floorplan_url || '');
+  const formattedPrice = formatPrice(unit.price ?? null);
+  const stats = [
+    { label: 'Bedrooms', value: unit.bedrooms ?? '—' },
+    { label: 'Bathrooms', value: unit.bathrooms ?? '—' },
+    { label: 'Square Feet', value: unit.square_feet ?? '—' },
+  ];
+  const availability = unit.availability_status || 'Available';
+  const mapUrl = address ? getStaticMapUrl(address) : null;
+
+  return {
+    project,
+    unit,
+    heroImage,
+    gallery,
+    floorplanUrl,
+    formattedPrice,
+    stats,
+    availability,
+    address,
+    mapUrl,
+    isStaticMap: Boolean(mapsApiKey),
+  };
+};
+
+export const getUnitPageDataBySlug = async (
+  projectSlug: string,
+  unitSlug: string,
+): Promise<ProjectUnitPageData | null> => {
+  // Fetch both statuses to find the project
+  const [completedProjects, comingSoonProjects] = await Promise.all([
+    getPublicProjectsByStatus('completed'),
+    getPublicProjectsByStatus('coming_soon'),
+  ]);
+  const allProjects = [...completedProjects, ...comingSoonProjects];
+
+  const normalizedProjectSlug = normalizeSlug(projectSlug);
+  const normalizedUnitSlug = unitSlug.toLowerCase();
+
+  const project = allProjects.find(
+    (p) => p.slug === projectSlug || p.slug === normalizedProjectSlug || (p.slug && normalizeSlug(p.slug) === normalizedProjectSlug)
+  );
+
+  if (!project) {
+    return null;
+  }
+
+  const unit = (project.units || []).find((u) => {
+    const unitCode = u.unit_code || '';
+    return u.id === unitSlug || unitCode.toLowerCase() === normalizedUnitSlug || normalizeSlug(unitCode) === normalizedUnitSlug;
+  });
+
+  if (!unit) {
+    return null;
+  }
+
+  const address = formatAddress(project);
+  const sortedPhotos = sortPhotos(unit.unit_photos || []);
+  const heroPhotoPath =
+    sortedPhotos.find((photo) => photo.role === 'main')?.storage_path || sortedPhotos[0]?.storage_path || '';
+  const heroImage = resolveImageUrl(heroPhotoPath);
+  const gallery = (
+    await Promise.all(
+      sortedPhotos.map(async (photo) => {
+        const url = resolveImageUrl(photo.storage_path);
+        if (!url) return null;
+        return {
+          id: photo.id,
+          url,
+          alt: photo.alt_text || `${project.name} ${unit.name} photo`,
+        };
+      })
+    )
+  ).filter(Boolean) as { id: string; url: string; alt: string }[];
+
+  const floorplanUrl = resolveImageUrl(unit.floorplan_url || '');
   const formattedPrice = formatPrice(unit.price ?? null);
   const stats = [
     { label: 'Bedrooms', value: unit.bedrooms ?? '—' },
@@ -340,7 +414,7 @@ export const getProjectPageData = async (slug: string): Promise<ProjectPageData 
         .filter((photo) => photo.role === 'hero' || photo.role === 'main')
         .slice(0, 4)
         .map(async (photo) => {
-          const url = await resolveImageUrl(photo.storage_path);
+          const url = resolveImageUrl(photo.storage_path);
           if (!url) return null;
           return {
             url,
@@ -353,7 +427,7 @@ export const getProjectPageData = async (slug: string): Promise<ProjectPageData 
   const gallery = (
     await Promise.all(
       sortedProjectPhotos.map(async (photo) => {
-        const url = await resolveImageUrl(photo.storage_path);
+        const url = resolveImageUrl(photo.storage_path);
         if (!url) return null;
         return {
           id: photo.id,
@@ -372,7 +446,7 @@ export const getProjectPageData = async (slug: string): Promise<ProjectPageData 
         sortedUnitPhotos.find((photo) => photo.role === 'main')?.storage_path ||
         sortedUnitPhotos[0]?.storage_path ||
         '';
-      const heroImage = await resolveImageUrl(heroPhotoPath);
+      const heroImage = resolveImageUrl(heroPhotoPath);
 
       return {
         id: unit.id,

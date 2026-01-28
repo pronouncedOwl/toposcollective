@@ -17,7 +17,6 @@ export default async function CompletedPage() {
       ctaBody="Building places you want to be."
       ctaHref="/contact"
       ctaLabel="Contact Us"
-      unitLinkBase="/completed/units"
     />
   );
 }

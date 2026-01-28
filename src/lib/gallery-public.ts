@@ -1,4 +1,4 @@
-import { getPublicUrl, getSignedUrl } from './storage';
+import { getPublicUrl } from './storage';
 import { supabase } from './supabase';
 
 export type GalleryPhoto = {
@@ -8,15 +8,10 @@ export type GalleryPhoto = {
   size: 'normal' | 'tall' | 'wide';
 };
 
-const resolveImageUrl = async (path?: string | null) => {
+const resolveImageUrl = (path?: string | null) => {
   if (!path) return null;
   if (path.startsWith('http')) return path;
-  // Prefer public URLs for gallery (they don't expire)
-  // Fall back to signed URLs if bucket isn't public
-  const publicUrl = getPublicUrl(path);
-  if (publicUrl) return publicUrl;
-  const signedUrl = await getSignedUrl(path);
-  return signedUrl || null;
+  return getPublicUrl(path);
 };
 
 export async function fetchGalleryPhotos(): Promise<GalleryPhoto[]> {
@@ -31,9 +26,9 @@ export async function fetchGalleryPhotos(): Promise<GalleryPhoto[]> {
     return [];
   }
 
-  const resolved = await Promise.all(
-    (data || []).map(async (photo) => {
-      const url = await resolveImageUrl(photo.storage_path);
+  return (data || [])
+    .map((photo) => {
+      const url = resolveImageUrl(photo.storage_path);
       if (!url) return null;
       return {
         id: photo.id,
@@ -41,8 +36,6 @@ export async function fetchGalleryPhotos(): Promise<GalleryPhoto[]> {
         alt: photo.alt_text || 'Gallery photo',
         size: (photo.size as GalleryPhoto['size']) || 'normal',
       };
-    }),
-  );
-
-  return resolved.filter(Boolean) as GalleryPhoto[];
+    })
+    .filter(Boolean) as GalleryPhoto[];
 }

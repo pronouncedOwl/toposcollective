@@ -8,9 +8,6 @@ type GalleryClientProps = {
   photos: GalleryPhoto[];
 };
 
-// Signed URLs with tokens don't work well with Next.js Image optimization
-const isSignedUrl = (url: string) => url.includes('token=');
-
 export default function GalleryClient({ photos }: GalleryClientProps) {
   const [selectedImage, setSelectedImage] = useState<number | null>(null);
 
@@ -74,7 +71,6 @@ export default function GalleryClient({ photos }: GalleryClientProps) {
                 fill
                 sizes="(min-width: 768px) 33vw, 100vw"
                 className="object-cover"
-                unoptimized={isSignedUrl(photo.url)}
               />
             </div>
           </div>
@@ -120,7 +116,6 @@ export default function GalleryClient({ photos }: GalleryClientProps) {
                 width={1200}
                 height={800}
                 className="h-auto max-h-[80vh] w-full rounded-lg object-contain"
-                unoptimized={isSignedUrl(photos[selectedImage].url)}
               />
             </div>
           </div>

@@ -18,8 +18,5 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
     notFound();
   }
 
-  // Determine unitLinkBase based on project status
-  const unitLinkBase = data.project.status === 'completed' ? '/completed/units' : '/coming-soon/units';
-
-  return <ProjectDetailLayout data={data} unitLinkBase={unitLinkBase} />;
+  return <ProjectDetailLayout data={data} />;
 }

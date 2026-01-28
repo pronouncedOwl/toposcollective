@@ -7,10 +7,9 @@ import type { ProjectPageData } from '@/lib/projects-view';
 
 type ProjectDetailLayoutProps = {
   data: ProjectPageData;
-  unitLinkBase: string;
 };
 
-export default function ProjectDetailLayout({ data, unitLinkBase }: ProjectDetailLayoutProps) {
+export default function ProjectDetailLayout({ data }: ProjectDetailLayoutProps) {
   const { project, heroImages, gallery, completionLabel, address, mapUrl, isStaticMap, units } = data;
 
   return (
@@ -180,7 +179,7 @@ export default function ProjectDetailLayout({ data, unitLinkBase }: ProjectDetai
                         )}
 
                         <Link
-                          href={`${unitLinkBase}/${unitSlug}`}
+                          href={`/units/${project.slug}/${unitSlug}`}
                           className="inline-flex text-sm font-semibold text-[#3b7d98] underline underline-offset-4 transition hover:text-[#2d5f75]"
                         >
                           View Unit Details →

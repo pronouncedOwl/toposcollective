@@ -29,9 +29,14 @@ export default function ContactForm({ className = "" }: ContactFormProps) {
   const { isReady: turnstileLoaded } = useTurnstile();
 
   const handleTurnstileCallback = useCallback((token: string) => {
+    console.log('Turnstile callback fired with token:', {
+      hasToken: !!token,
+      tokenLength: token?.length,
+      tokenPreview: token ? `${token.substring(0, 20)}...` : 'MISSING',
+    });
     setFormData(prev => ({
       ...prev,
-      cfTurnstileResponse: token
+      cfTurnstileResponse: token || ''
     }));
   }, []);
 
@@ -60,22 +65,46 @@ export default function ContactForm({ className = "" }: ContactFormProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Check if Turnstile token is present
-    if (!formData.cfTurnstileResponse) {
+    // Check if Turnstile token is present and valid (not empty string)
+    if (!formData.cfTurnstileResponse || formData.cfTurnstileResponse.trim() === '') {
+      console.error('Turnstile token missing or empty before submission:', {
+        cfTurnstileResponse: formData.cfTurnstileResponse,
+        type: typeof formData.cfTurnstileResponse,
+      });
       setSubmitStatus('error');
+      setErrorMessage('Please complete the security verification.');
       return;
     }
+    
+    console.log('Submitting form with Turnstile token:', {
+      hasToken: !!formData.cfTurnstileResponse,
+      tokenLength: formData.cfTurnstileResponse?.length,
+      tokenPreview: formData.cfTurnstileResponse?.substring(0, 20) + '...',
+    });
     
     setIsSubmitting(true);
     setSubmitStatus('idle');
 
     try {
+      const requestBody = {
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        message: formData.message,
+        cfTurnstileResponse: formData.cfTurnstileResponse,
+      };
+      
+      console.log('Request body:', {
+        ...requestBody,
+        cfTurnstileResponse: requestBody.cfTurnstileResponse ? `${requestBody.cfTurnstileResponse.substring(0, 20)}...` : 'MISSING',
+      });
+      
       const response = await fetch('/api/contact', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(requestBody),
       });
 
       if (response.ok) {

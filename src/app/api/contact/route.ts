@@ -33,6 +33,16 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json();
     const { name, email, phone, message, cfTurnstileResponse } = body;
+    
+    console.log('Received contact form submission:', {
+      hasName: !!name,
+      hasEmail: !!email,
+      hasMessage: !!message,
+      hasTurnstileToken: !!cfTurnstileResponse,
+      turnstileTokenType: typeof cfTurnstileResponse,
+      turnstileTokenLength: cfTurnstileResponse?.length || 0,
+      turnstileTokenPreview: cfTurnstileResponse ? `${cfTurnstileResponse.substring(0, 20)}...` : 'MISSING',
+    });
 
     // Validate required fields
     if (!name || !email || !message || !cfTurnstileResponse) {

@@ -54,8 +54,8 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href="/portfolio" className="text-gray-300 hover:text-white transition-colors">
-                  Portfolio
+                <Link href="/gallery" className="text-gray-300 hover:text-white transition-colors">
+                  Gallery
                 </Link>
               </li>
               <li>
@@ -85,12 +85,6 @@ export default function Footer() {
               © Copyright 2024. All rights reserved.
             </p>
             <div className="flex space-x-6 mt-4 md:mt-0">
-              <Link href="/privacy" className="text-gray-400 hover:text-white text-sm transition-colors">
-                Privacy Policy
-              </Link>
-              <Link href="/terms" className="text-gray-400 hover:text-white text-sm transition-colors">
-                Terms of Service
-              </Link>
               <Link href="/admin" className="text-gray-400 hover:text-white text-sm transition-colors">
                 Admin
               </Link>

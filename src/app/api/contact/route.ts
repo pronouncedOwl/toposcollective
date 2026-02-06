@@ -10,12 +10,19 @@ export async function POST(req: NextRequest) {
     const rateLimitResult = rateLimit(`contact:${clientIP}`, 3, 15 * 60 * 1000);
     
     if (!rateLimitResult.allowed) {
+      const retryAfterSeconds = Math.ceil((rateLimitResult.resetTime - Date.now()) / 1000);
+      const retryAfterMinutes = Math.ceil(retryAfterSeconds / 60);
+      
       return NextResponse.json(
-        { error: 'Too many requests. Please try again later.' },
+        { 
+          error: 'Too many requests. Please try again later.',
+          retryAfter: retryAfterSeconds,
+          retryAfterMinutes: retryAfterMinutes
+        },
         { 
           status: 429,
           headers: {
-            'Retry-After': Math.ceil((rateLimitResult.resetTime - Date.now()) / 1000).toString(),
+            'Retry-After': retryAfterSeconds.toString(),
             'X-RateLimit-Limit': '3',
             'X-RateLimit-Remaining': '0',
             'X-RateLimit-Reset': rateLimitResult.resetTime.toString()
@@ -125,25 +132,28 @@ export async function POST(req: NextRequest) {
     // Send email using SMTP2GO
     // Using same sender email and API key as katie-site
     const fromEmail = process.env.SMTP2GO_FROM_EMAIL || 'noreply@katieshowellrealtor.com';
-    const toEmail = process.env.CONTACT_EMAIL || 'katieshowellatx@gmail.com';
+
+    // Support multiple comma-separated recipient emails in CONTACT_EMAIL
+    const contactEmailsEnv = process.env.CONTACT_EMAIL;
+    const fallbackEmail = 'katieshowellatx@gmail.com';
+    const toEmails = (contactEmailsEnv || fallbackEmail)
+      .split(',')
+      .map((email) => email.trim())
+      .filter((email) => email.length > 0);
     
     // Log email configuration for debugging
     console.log('Email configuration:', {
       from: fromEmail,
-      to: toEmail,
+      to: toEmails,
     });
     
     try {
       const emailResponse = await sendSMTP2GOEmail({
         html: htmlContent,
-        subject: `New Contact Form Submission from ${sanitizedName}`,
+        subject: `TOPOS COLLECTIVE - New Contact Form Submission from ${sanitizedName}`,
         from_email: fromEmail,
         from_name: 'Topos Collective',
-        to: [
-          {
-            email: toEmail,
-          },
-        ],
+        to: toEmails.map((email) => ({ email })),
         reply_to: sanitizedEmail,
         custom_headers: {
           'X-Form-Type': 'contact',

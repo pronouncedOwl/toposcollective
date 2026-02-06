@@ -24,7 +24,8 @@ export default function ContactForm({ className = "" }: ContactFormProps) {
     cfTurnstileResponse: ''
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error' | 'rateLimited'>('idle');
+  const [errorMessage, setErrorMessage] = useState<string>('');
   const { isReady: turnstileLoaded } = useTurnstile();
 
   const handleTurnstileCallback = useCallback((token: string) => {
@@ -41,7 +42,7 @@ export default function ContactForm({ className = "" }: ContactFormProps) {
       const existingWidget = document.querySelector('#cf-turnstile iframe');
       if (!existingWidget) {
         window.turnstile.render('#cf-turnstile', {
-          sitekey: process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || '0x4AAAAAAB2Tif7gAmsmLae8',
+          sitekey: process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || '0x4AAAAAACEC45q77suzzFP7',
           callback: handleTurnstileCallback
         });
       }
@@ -79,6 +80,7 @@ export default function ContactForm({ className = "" }: ContactFormProps) {
 
       if (response.ok) {
         setSubmitStatus('success');
+        setErrorMessage('');
         setFormData({
           name: '',
           email: '',
@@ -90,11 +92,19 @@ export default function ContactForm({ className = "" }: ContactFormProps) {
         if (window.turnstile) {
           window.turnstile.reset('#cf-turnstile');
         }
+      } else if (response.status === 429) {
+        // Rate limit exceeded
+        const data = await response.json();
+        const retryMinutes = data.retryAfterMinutes || 15;
+        setSubmitStatus('rateLimited');
+        setErrorMessage(`You've submitted too many requests. To prevent spam, we limit contact form submissions to 3 per 15 minutes. Please try again in ${retryMinutes} minute${retryMinutes !== 1 ? 's' : ''}.`);
       } else {
         setSubmitStatus('error');
+        setErrorMessage('');
       }
     } catch {
       setSubmitStatus('error');
+      setErrorMessage('');
     } finally {
       setIsSubmitting(false);
     }
@@ -176,6 +186,13 @@ export default function ContactForm({ className = "" }: ContactFormProps) {
       {submitStatus === 'success' && (
         <div className="bg-green-50 border border-green-200 rounded-md p-4">
           <p className="text-green-800">Thank you! Your message has been sent successfully. We&apos;ll get back to you soon.</p>
+        </div>
+      )}
+
+      {submitStatus === 'rateLimited' && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4">
+          <p className="text-yellow-800 font-medium">{errorMessage}</p>
+          <p className="text-yellow-700 text-sm mt-2">If you need immediate assistance, please call us at (512) 850-8560.</p>
         </div>
       )}
 

@@ -45,18 +45,33 @@ export default function AdminLoginPage() {
     try {
       const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin;
       const redirectTo = `${baseUrl}/admin/auth/callback?next=/admin/projects`;
-      const { error } = await supabaseBrowser.auth.signInWithOAuth({
+      
+      console.log('[admin-login] Starting OAuth sign-in:', {
+        baseUrl,
+        redirectTo,
+        NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL,
+        windowLocationOrigin: window.location.origin,
+        supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
+      });
+      
+      const { error, data } = await supabaseBrowser.auth.signInWithOAuth({
         provider: 'google',
         options: { redirectTo },
       });
 
+      console.log('[admin-login] OAuth sign-in response:', {
+        error: error?.message,
+        errorDetails: error,
+        data,
+      });
+
       if (error) {
-        console.error('Failed to start sign-in', error);
+        console.error('[admin-login] Failed to start sign-in:', error);
         setLoading(false);
         return;
       }
     } catch (error) {
-      console.error('Failed to start sign-in', error);
+      console.error('[admin-login] Exception during sign-in:', error);
       setLoading(false);
     }
   };

@@ -9,16 +9,7 @@ export default function TeamPage() {
     <div className="min-h-screen bg-white">
       {/* Hero Section */}
       <LazySection direction="fade" delay={0}>
-        <div 
-          className="relative min-h-[404px] flex items-center pt-32"
-          style={{
-            backgroundImage: 'linear-gradient(rgba(255,255,255,0.8), rgba(255,255,255,0.8)), url(https://toposcollective.com/wp-content/uploads/2024/04/20-web-or-mls-Richmond-15.jpg)',
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-            backgroundRepeat: 'no-repeat'
-          }}
-        >
-          
+        <div className="relative min-h-[404px] flex items-center pt-32 bg-gray-50">
           {/* Content */}
           <div className="relative z-10 w-full">
             <div className="max-w-6xl mx-auto px-4 py-8">
@@ -43,7 +34,7 @@ export default function TeamPage() {
           name="Michelle Mullins"
           title="Builder"
           description="With over a decade in the construction industry and an Austinite (a unicorn!), Michelle ties together experience and passion to bring Topos Collective to life."
-          imageSrc="https://toposcollective.com/wp-content/uploads/2024/04/DSC_0246-2-683x1024.jpg"
+          imageSrc="/images/michelle-mullins-team.png"
           imageAlt="Michelle Mullins"
           imagePosition="left"
           testimonial={{
@@ -61,7 +52,7 @@ export default function TeamPage() {
           name="Katie Showell"
           title="Operations"
           description="For over a decade Katie helped billion dollar companies optimize their operational profitability towards their goals. Katie started investing in real estate before realizing the real estate industry was a calling. As Strategic Director and Operations Leader, Katie brings the glue to the Topos Collective foundation."
-          imageSrc="https://toposcollective.com/wp-content/uploads/2024/04/Dame-Dwellings-26-1-731x1024.jpeg"
+          imageSrc="/images/katie-showell-team.png"
           imageAlt="Katie Showell"
           imagePosition="right"
           testimonial={{
@@ -79,7 +70,7 @@ export default function TeamPage() {
           name="Alan Avery"
           title="Business Development"
           description="With over 25 years of experience building in both Austin and throughout the state of Montana, Alan is well-versed in new home construction and residential redevelopment. His near impeccable rate of success includes hundreds of happy customers and investors."
-          imageSrc="https://toposcollective.com/wp-content/uploads/2024/04/DSC_0518-681x1024.jpg"
+          imageSrc="/images/alan-avery-team.png"
           imageAlt="Alan Avery"
           imagePosition="left"
           testimonial={{

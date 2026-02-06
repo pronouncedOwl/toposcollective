@@ -251,17 +251,6 @@ export default function WhatWeDoPage() {
       <LazySection direction="fade" delay={1200}>
         <div className="relative overflow-hidden rounded-lg border-t-8 border-[#3b7d98]">
           <div className="relative min-h-[400px] flex items-center bg-gray-800">
-            {/* Background Image */}
-            <div className="absolute inset-0">
-              <Image
-                src="https://toposcollective.com/wp-content/uploads/2024/04/742-Pedernales-kitchen.jpeg"
-                alt="Pedernales Kitchen"
-                fill
-                className="object-cover"
-                style={{ filter: 'brightness(0.5) contrast(1.1)' }}
-              />
-            </div>
-            
             {/* Content */}
             <div className="relative z-10 w-full">
               <div className="max-w-6xl mx-auto px-4">

@@ -67,6 +67,15 @@ export async function POST(req: NextRequest) {
 
     // Verify Cloudflare Turnstile token (skip if no secret key in development)
     if (process.env.CLOUDFLARE_TURNSTILE_SECRET_KEY) {
+      const remoteIp = req.headers.get('cf-connecting-ip') || req.headers.get('x-forwarded-for') || 'unknown';
+      
+      console.log('Verifying Turnstile token:', {
+        hasToken: !!cfTurnstileResponse,
+        tokenLength: cfTurnstileResponse?.length,
+        remoteIp: remoteIp,
+        hasSecretKey: !!process.env.CLOUDFLARE_TURNSTILE_SECRET_KEY,
+      });
+
       const turnstileResponse = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
         method: 'POST',
         headers: {
@@ -75,19 +84,45 @@ export async function POST(req: NextRequest) {
         body: JSON.stringify({
           secret: process.env.CLOUDFLARE_TURNSTILE_SECRET_KEY,
           response: cfTurnstileResponse,
-          remoteip: req.headers.get('cf-connecting-ip') || req.headers.get('x-forwarded-for') || 'unknown',
+          remoteip: remoteIp,
         }),
       });
 
       const turnstileResult = await turnstileResponse.json();
 
       if (!turnstileResult.success) {
-        console.error('Turnstile verification failed:', turnstileResult);
+        console.error('Turnstile verification failed:', {
+          success: turnstileResult.success,
+          'error-codes': turnstileResult['error-codes'],
+          challenge_ts: turnstileResult.challenge_ts,
+          hostname: turnstileResult.hostname,
+        });
+        
+        // Provide more specific error message based on error codes
+        let errorMessage = 'Spam protection verification failed';
+        if (turnstileResult['error-codes'] && turnstileResult['error-codes'].length > 0) {
+          const errorCodes = turnstileResult['error-codes'];
+          if (errorCodes.includes('invalid-input-secret')) {
+            errorMessage = 'Turnstile configuration error: Invalid secret key';
+          } else if (errorCodes.includes('missing-input-secret')) {
+            errorMessage = 'Turnstile configuration error: Secret key missing';
+          } else if (errorCodes.includes('invalid-input-response')) {
+            errorMessage = 'Turnstile token invalid or expired. Please try again.';
+          } else if (errorCodes.includes('timeout-or-duplicate')) {
+            errorMessage = 'Turnstile token expired. Please refresh and try again.';
+          }
+        }
+        
         return NextResponse.json(
-          { error: 'Spam protection verification failed' },
+          { error: errorMessage },
           { status: 400 }
         );
       }
+      
+      console.log('Turnstile verification successful:', {
+        hostname: turnstileResult.hostname,
+        challenge_ts: turnstileResult.challenge_ts,
+      });
     } else {
       console.log('Skipping Turnstile verification - no secret key configured');
     }

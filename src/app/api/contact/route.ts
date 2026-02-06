@@ -33,16 +33,6 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json();
     const { name, email, phone, message, cfTurnstileResponse } = body;
-    
-    console.log('Received contact form submission:', {
-      hasName: !!name,
-      hasEmail: !!email,
-      hasMessage: !!message,
-      hasTurnstileToken: !!cfTurnstileResponse,
-      turnstileTokenType: typeof cfTurnstileResponse,
-      turnstileTokenLength: cfTurnstileResponse?.length || 0,
-      turnstileTokenPreview: cfTurnstileResponse ? `${cfTurnstileResponse.substring(0, 20)}...` : 'MISSING',
-    });
 
     // Validate required fields
     if (!name || !email || !message || !cfTurnstileResponse) {
@@ -78,13 +68,6 @@ export async function POST(req: NextRequest) {
     // Verify Cloudflare Turnstile token (skip if no secret key in development)
     if (process.env.CLOUDFLARE_TURNSTILE_SECRET_KEY) {
       const remoteIp = req.headers.get('cf-connecting-ip') || req.headers.get('x-forwarded-for') || 'unknown';
-      
-      console.log('Verifying Turnstile token:', {
-        hasToken: !!cfTurnstileResponse,
-        tokenLength: cfTurnstileResponse?.length,
-        remoteIp: remoteIp,
-        hasSecretKey: !!process.env.CLOUDFLARE_TURNSTILE_SECRET_KEY,
-      });
 
       const turnstileResponse = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
         method: 'POST',
@@ -101,13 +84,6 @@ export async function POST(req: NextRequest) {
       const turnstileResult = await turnstileResponse.json();
 
       if (!turnstileResult.success) {
-        console.error('Turnstile verification failed:', {
-          success: turnstileResult.success,
-          'error-codes': turnstileResult['error-codes'],
-          challenge_ts: turnstileResult.challenge_ts,
-          hostname: turnstileResult.hostname,
-        });
-        
         // Provide more specific error message based on error codes
         let errorMessage = 'Spam protection verification failed';
         if (turnstileResult['error-codes'] && turnstileResult['error-codes'].length > 0) {
@@ -128,13 +104,6 @@ export async function POST(req: NextRequest) {
           { status: 400 }
         );
       }
-      
-      console.log('Turnstile verification successful:', {
-        hostname: turnstileResult.hostname,
-        challenge_ts: turnstileResult.challenge_ts,
-      });
-    } else {
-      console.log('Skipping Turnstile verification - no secret key configured');
     }
 
     // Check SMTP2GO API key

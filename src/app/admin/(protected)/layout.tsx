@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { ReactNode } from 'react';
 import { redirect } from 'next/navigation';
 import { getAdminUser } from '../../../lib/admin-auth';
+import LogoutButton from '../../../components/admin/LogoutButton';
 
 export default async function AdminProtectedLayout({ children }: { children: ReactNode }) {
   const adminUser = await getAdminUser();
@@ -33,6 +34,7 @@ export default async function AdminProtectedLayout({ children }: { children: Rea
             <Link href="/" className="hover:text-slate-900">
               View Site
             </Link>
+            <LogoutButton />
           </nav>
         </div>
       </header>

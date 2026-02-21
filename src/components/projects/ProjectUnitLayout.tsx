@@ -4,6 +4,7 @@ import LazySection from '@/components/LazySection';
 import CTAButton from '@/components/CTAButton';
 import UnitGallery from '@/components/UnitGallery';
 import type { ProjectUnitPageData } from '@/lib/projects-view';
+import { getRandomStrip } from '@/lib/image-utils';
 
 type ProjectUnitLayoutProps = {
   data: ProjectUnitPageData;
@@ -15,6 +16,22 @@ type ProjectUnitLayoutProps = {
   ctaSecondaryHref?: string;
 };
 
+const formatUnitSummary = (unit: ProjectUnitPageData['unit']): string => {
+  const parts = [];
+  
+  if (unit.bedrooms !== null) {
+    parts.push(`${unit.bedrooms}bd`);
+  }
+  if (unit.bathrooms !== null) {
+    parts.push(`${unit.bathrooms}ba`);
+  }
+  if (unit.square_feet !== null) {
+    parts.push(`${unit.square_feet.toLocaleString('en-US')} sqft`);
+  }
+  
+  return parts.join(' · ') || 'Unit details';
+};
+
 export default function ProjectUnitLayout({
   data,
   backHref,
@@ -24,8 +41,12 @@ export default function ProjectUnitLayout({
   ctaSecondaryLabel,
   ctaSecondaryHref = '/contact',
 }: ProjectUnitLayoutProps) {
-  const { project, unit, heroImage, gallery, floorplanUrl, formattedPrice, stats, availability, address, mapUrl, isStaticMap } =
+  const { project, unit, heroImage, heroStripCandidates, gallery, floorplanUrl, formattedPrice, stats, availability, address, mapUrl, isStaticMap, completionLabel } =
     data;
+  
+  // Use the same random strip logic as the project list expanded view
+  const heroStrip = getRandomStrip(heroStripCandidates, 4);
+  const unitSummary = formatUnitSummary(unit);
   const soldPrice =
     unit.sold_price === null || unit.sold_price === undefined
       ? null
@@ -47,26 +68,12 @@ export default function ProjectUnitLayout({
     : null;
   const timeOnMarket = unit.time_on_market_days ?? null;
   const isSold = availability.toLowerCase().includes('sold');
-  const highlightItems =
-    project.status === 'completed'
-      ? [
-          { label: 'Asking Price', value: formattedPrice ?? '-' },
-          { label: 'Selling Price', value: soldPrice ?? '-' },
-          { label: 'Expected Completion', value: expectedCompletion ?? '-' },
-          { label: 'Actual Completion', value: actualCompletion ?? '-' },
-          { label: 'Time on Market', value: timeOnMarket ? `${timeOnMarket} days` : '-' },
-        ]
-      : [
-          { label: 'Unit Code', value: unit.unit_code || unit.id },
-          { label: 'Project', value: project.name },
-          { label: 'Availability', value: availability },
-          { label: 'Location', value: project.city || 'Austin' },
-        ];
 
   return (
     <div className="min-h-screen bg-white">
+      {/* Hero Section - Using expanded view layout */}
       <LazySection direction="fade" delay={0}>
-        <div className="bg-gray-50 pt-28 pb-16">
+        <div className="bg-white pt-32 pb-8">
           <div className="mx-auto max-w-6xl px-4">
             <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
               <Link
@@ -86,34 +93,14 @@ export default function ProjectUnitLayout({
               </span>
             </div>
 
-            <div className="grid gap-10 lg:grid-cols-[minmax(0,1.05fr),minmax(0,0.95fr)] lg:items-center">
-              <div>
-                <p className="mb-3 text-sm uppercase tracking-[0.35em] text-gray-400">
-                  {project.city || 'Austin'}, {project.state || 'Texas'}
-                </p>
-                <h1 className="mb-4 text-4xl font-bold text-gray-900 md:text-5xl">
-                  {unit.name || project.name}
-                </h1>
-                {address && <p className="mb-4 text-lg text-gray-600">{address}</p>}
-                {formattedPrice ? (
-                  <p className="mb-6 text-3xl font-semibold text-gray-900">{formattedPrice}</p>
-                ) : (
-                  <p className="mb-6 text-lg font-medium text-gray-600">Contact for pricing</p>
-                )}
-
-                <div className="flex flex-wrap gap-3">
-                  {stats.map((stat) => (
-                    <div
-                      key={stat.label}
-                      className="flex min-w-[140px] flex-1 items-center justify-between gap-4 rounded-lg border border-gray-200 bg-white px-3 py-2"
-                    >
-                      <p className="text-[10px] uppercase tracking-[0.2em] text-gray-400">{stat.label}</p>
-                      <p className="text-lg font-semibold text-gray-900">{stat.value}</p>
-                    </div>
-                  ))}
+            <div className="rounded-3xl border border-gray-200 bg-white p-8 shadow-sm md:p-10">
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div>
+                  <h1 className="mb-3 text-3xl font-bold text-gray-900 md:text-4xl">{unit.name || project.name}</h1>
+                  <p className="mb-2 text-sm text-gray-500">{unitSummary}</p>
+                  <p className="text-sm uppercase tracking-[0.3em] text-gray-400">{completionLabel}</p>
                 </div>
-
-                <div className="mt-8 flex flex-wrap gap-4">
+                <div className="flex items-center gap-3">
                   <CTAButton href={ctaPrimaryHref} size="md">
                     {ctaPrimaryLabel}
                   </CTAButton>
@@ -125,53 +112,35 @@ export default function ProjectUnitLayout({
                 </div>
               </div>
 
-              <div className="relative">
-                <div className="relative h-[340px] w-full overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-xl md:h-[420px]">
-                  {heroImage ? (
-                    <Image src={heroImage} alt={`${unit.name} main`} fill sizes="100vw" className="object-contain" />
-                  ) : (
-                    <div className="flex h-full w-full items-center justify-center text-sm text-gray-500">
-                      No unit imagery yet
+              {/* 4-image gallery (or fewer if not enough images) */}
+              {heroStrip.length > 0 && (
+                <div className="mt-6 flex h-36 w-full gap-1 md:h-[168px]">
+                  {heroStrip.map((image, imageIndex) => (
+                    <div key={image.url} className="relative h-full w-[calc(25%-0.1875rem)] overflow-hidden rounded-2xl border border-[#3b7d98]/75 bg-gray-100 shadow-sm">
+                      <Image
+                        src={image.url}
+                        alt={image.alt || `${unit.name || project.name} image ${imageIndex + 1}`}
+                        fill
+                        sizes="(min-width: 768px) 25vw, 50vw"
+                        className="object-contain object-center rounded-2xl"
+                      />
                     </div>
-                  )}
+                  ))}
                 </div>
-              </div>
+              )}
             </div>
           </div>
         </div>
       </LazySection>
 
-      <div className="bg-white py-16">
+      <div className="bg-white pb-16 pt-8">
         <div className="mx-auto max-w-6xl px-4">
           <LazySection direction="up" delay={120}>
-            <div className="grid gap-12 lg:grid-cols-[minmax(0,1fr),minmax(0,0.8fr)]">
-              <div>
-                <p className="mb-3 text-sm uppercase tracking-[0.3em] text-gray-400">Overview</p>
-                <h2 className="mb-4 text-3xl font-bold text-gray-900">Inside the residence</h2>
-                <p className="text-lg text-gray-600">
-                  {unit.long_description ||
-                    unit.description ||
-                    project.long_description ||
-                    'Refined materials, natural light, and thoughtful spatial flow.'}
-                </p>
-              </div>
-              <div className="rounded-2xl border border-gray-200 bg-gray-50 p-6">
-                <p className="mb-4 text-sm uppercase tracking-[0.3em] text-gray-400">Highlights</p>
-                <div className="space-y-3 text-gray-600">
-                  {highlightItems.map((item, index) => (
-                    <div
-                      key={item.label}
-                      className={`flex items-center justify-between ${
-                        index === highlightItems.length - 1 ? '' : 'border-b border-gray-200 pb-3'
-                      }`}
-                    >
-                      <span className="text-sm font-medium text-gray-500">{item.label}</span>
-                      <span className="text-sm font-semibold text-gray-900">{item.value}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
+            {unit.long_description && (
+              <p className="text-lg text-gray-600">
+                {unit.long_description}
+              </p>
+            )}
           </LazySection>
 
           {floorplanUrl && (
@@ -208,9 +177,23 @@ export default function ProjectUnitLayout({
             </LazySection>
           )}
 
+          {project.long_description && (
+            <LazySection direction="up" delay={260}>
+              <div className="mt-16">
+                <div className="mb-12">
+                  <p className="mb-3 text-sm uppercase tracking-[0.3em] text-gray-400">Project</p>
+                  <h2 className="mb-4 text-3xl font-bold text-gray-900">About the project</h2>
+                  <p className="text-lg text-gray-600">
+                    {project.long_description}
+                  </p>
+                </div>
+              </div>
+            </LazySection>
+          )}
+
           {mapUrl && (
             <LazySection direction="up" delay={280}>
-              <div className="mt-16 rounded-2xl border border-gray-200 bg-gray-50 p-8">
+              <div className={`rounded-2xl border border-gray-200 bg-gray-50 p-8 ${project.long_description ? 'mt-16' : 'mt-16'}`}>
                 <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
                   <div>
                     <p className="text-sm uppercase tracking-[0.3em] text-gray-400">Location</p>

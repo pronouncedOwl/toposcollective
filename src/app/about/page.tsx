@@ -203,7 +203,8 @@ export default function AboutPage() {
                 </p>
               </div>
               
-              <div className="flex justify-center">
+              {/* TODO: Re-enable careers link when careers page is created */}
+              {/* <div className="flex justify-center">
                 <Button
                   href="/careers"
                   variant="primary"
@@ -212,7 +213,7 @@ export default function AboutPage() {
                 >
                   View Open Positions
                 </Button>
-              </div>
+              </div> */}
             </div>
             
             <div className="grid md:grid-cols-3 gap-8 mt-16">

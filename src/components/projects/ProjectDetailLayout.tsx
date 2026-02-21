@@ -3,20 +3,66 @@ import Link from 'next/link';
 import LazySection from '@/components/LazySection';
 import CTAButton from '@/components/CTAButton';
 import UnitGallery from '@/components/UnitGallery';
+import UnitCarousel from '@/components/projects/UnitCarousel';
 import type { ProjectPageData } from '@/lib/projects-view';
+import { getRandomStrip } from '@/lib/image-utils';
 
 type ProjectDetailLayoutProps = {
   data: ProjectPageData;
 };
 
+const formatUnitSummary = (units: ProjectPageData['units']): string => {
+  if (units.length === 0) return 'Unit info coming soon!';
+  
+  const unitCount = units.length;
+  const countLabel = `${unitCount} unit${unitCount === 1 ? '' : 's'}`;
+  
+  // Calculate bedroom range
+  const bedrooms = units.map((u) => u.bedrooms).filter((b): b is number => b !== null);
+  let bedroomRange = '';
+  if (bedrooms.length > 0) {
+    const minBedrooms = Math.min(...bedrooms);
+    const maxBedrooms = Math.max(...bedrooms);
+    if (minBedrooms === maxBedrooms) {
+      bedroomRange = `${minBedrooms}bd`;
+    } else {
+      bedroomRange = `${minBedrooms}bd–${maxBedrooms}bd`;
+    }
+  }
+  
+  // Calculate square feet range
+  const squareFeet = units.map((u) => u.squareFeet).filter((sf): sf is number => sf !== null);
+  let squareFeetRange = '';
+  if (squareFeet.length > 0) {
+    const minSqft = Math.min(...squareFeet);
+    const maxSqft = Math.max(...squareFeet);
+    if (minSqft === maxSqft) {
+      squareFeetRange = `${minSqft.toLocaleString('en-US')} sqft`;
+    } else {
+      squareFeetRange = `${minSqft.toLocaleString('en-US')}–${maxSqft.toLocaleString('en-US')} sqft`;
+    }
+  }
+  
+  // Build the summary
+  const parts = [countLabel];
+  if (bedroomRange) parts.push(bedroomRange);
+  if (squareFeetRange) parts.push(squareFeetRange);
+  
+  return parts.join(' · ');
+};
+
 export default function ProjectDetailLayout({ data }: ProjectDetailLayoutProps) {
-  const { project, heroImages, gallery, completionLabel, address, mapUrl, isStaticMap, units } = data;
+  const { project, heroImages, heroStripCandidates, gallery, completionLabel, address, mapUrl, isStaticMap, units } = data;
+  
+  // Use the same random strip logic as the project list expanded view
+  const heroStrip = getRandomStrip(heroStripCandidates, 4);
+  const unitSummary = formatUnitSummary(units);
 
   return (
     <div className="min-h-screen bg-white">
-      {/* Hero Section */}
+      {/* Hero Section - Using expanded view layout */}
       <LazySection direction="fade" delay={0}>
-        <div className="bg-gray-50 pt-28 pb-16">
+        <div className="bg-white pt-32 pb-8">
           <div className="mx-auto max-w-6xl px-4">
             <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
               <Link
@@ -30,29 +76,14 @@ export default function ProjectDetailLayout({ data }: ProjectDetailLayoutProps) 
               </span>
             </div>
 
-            <div className="grid gap-10 lg:grid-cols-[minmax(0,1.05fr),minmax(0,0.95fr)] lg:items-center">
-              <div>
-                <p className="mb-3 text-sm uppercase tracking-[0.35em] text-gray-400">
-                  {project.city || 'Austin'}, {project.state || 'Texas'}
-                </p>
-                <h1 className="mb-4 text-4xl font-bold text-gray-900 md:text-5xl">{project.name}</h1>
-                {address && <p className="mb-4 text-lg text-gray-600">{address}</p>}
-                <p className="mb-6 text-lg font-medium text-gray-500">{completionLabel}</p>
-
-                <div className="flex flex-wrap gap-3">
-                  <div className="flex min-w-[140px] flex-1 items-center justify-between gap-4 rounded-lg border border-gray-200 bg-white px-3 py-2">
-                    <p className="text-[10px] uppercase tracking-[0.2em] text-gray-400">Units</p>
-                    <p className="text-lg font-semibold text-gray-900">{units.length}</p>
-                  </div>
-                  {project.total_units && project.total_units > units.length && (
-                    <div className="flex min-w-[140px] flex-1 items-center justify-between gap-4 rounded-lg border border-gray-200 bg-white px-3 py-2">
-                      <p className="text-[10px] uppercase tracking-[0.2em] text-gray-400">Total Planned</p>
-                      <p className="text-lg font-semibold text-gray-900">{project.total_units}</p>
-                    </div>
-                  )}
+            <div className="rounded-3xl border border-gray-200 bg-white p-8 shadow-sm md:p-10">
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div>
+                  <h1 className="mb-3 text-3xl font-bold text-gray-900 md:text-4xl">{project.name}</h1>
+                  <p className="mb-2 text-sm text-gray-500">{unitSummary}</p>
+                  <p className="text-sm uppercase tracking-[0.3em] text-gray-400">{completionLabel}</p>
                 </div>
-
-                <div className="mt-8 flex flex-wrap gap-4">
+                <div className="flex items-center gap-3">
                   <CTAButton href="/contact" size="md">
                     Contact Us
                   </CTAButton>
@@ -62,35 +93,29 @@ export default function ProjectDetailLayout({ data }: ProjectDetailLayoutProps) 
                 </div>
               </div>
 
-              {/* Hero Image Strip */}
-              <div className="relative">
-                {heroImages.length > 0 ? (
-                  <div className="flex h-[340px] w-full gap-1 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-xl md:h-[420px]">
-                    {heroImages.slice(0, 4).map((image, index) => (
-                      <div key={image.url} className="relative h-full flex-1 overflow-hidden">
-                        <Image
-                          src={image.url}
-                          alt={image.alt || `${project.name} image ${index + 1}`}
-                          fill
-                          sizes="(min-width: 768px) 25vw, 50vw"
-                          className="object-cover"
-                        />
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="flex h-[340px] w-full items-center justify-center overflow-hidden rounded-2xl border border-gray-200 bg-gray-50 shadow-xl md:h-[420px]">
-                    <span className="text-sm text-gray-500">No project imagery yet</span>
-                  </div>
-                )}
-              </div>
+              {/* 4-image gallery */}
+              {heroStrip.length > 0 && (
+                <div className="mt-6 flex h-36 w-full gap-1 md:h-[168px]">
+                  {heroStrip.map((image, imageIndex) => (
+                    <div key={image.url} className="relative h-full flex-1 overflow-hidden rounded-2xl border border-[#3b7d98]/75 bg-gray-100 shadow-sm">
+                      <Image
+                        src={image.url}
+                        alt={image.alt || `${project.name} image ${imageIndex + 1}`}
+                        fill
+                        sizes="(min-width: 768px) 25vw, 50vw"
+                        className="object-contain object-center rounded-2xl"
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>
       </LazySection>
 
       {/* Project Overview */}
-      <div className="bg-white py-16">
+      <div className="bg-white pb-16 pt-8">
         <div className="mx-auto max-w-6xl px-4">
           <LazySection direction="up" delay={120}>
             <div className="mb-12">
@@ -113,81 +138,7 @@ export default function ProjectDetailLayout({ data }: ProjectDetailLayoutProps) 
                   </div>
                   <p className="text-sm text-gray-500">{units.length} unit{units.length === 1 ? '' : 's'}</p>
                 </div>
-                <div className="grid gap-8 md:grid-cols-2">
-                  {units.map((unit, index) => {
-                    const isLastAndOdd = index === units.length - 1 && units.length % 2 === 1;
-                    const unitSlug = unit.unitCode || unit.id;
-                    const isSold = unit.availability.toLowerCase().includes('sold');
-
-                    return (
-                      <div
-                        key={unit.id}
-                        className={`rounded-xl border border-gray-200 bg-white p-5 shadow-sm ${
-                          isLastAndOdd ? 'md:col-span-2 md:mx-auto md:max-w-[calc(50%-1rem)]' : ''
-                        }`}
-                      >
-                        <div className="mb-4 flex flex-wrap items-start justify-between gap-2">
-                          <div>
-                            <p className="text-xs uppercase tracking-[0.3em] text-gray-400">Unit</p>
-                            <h4 className="text-xl font-semibold text-gray-900">{unit.name}</h4>
-                          </div>
-                          <span
-                            className={
-                              isSold
-                                ? 'rounded-full bg-rose-600 px-3 py-1 text-xs font-bold uppercase tracking-[0.2em] text-white'
-                                : 'rounded-full border border-gray-200 bg-white px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-gray-500'
-                            }
-                          >
-                            {unit.availability}
-                          </span>
-                        </div>
-
-                        {unit.heroImage && (
-                          <div className="relative mb-4 h-48 w-full overflow-hidden rounded-lg border border-gray-200 bg-gray-50">
-                            <Image
-                              src={unit.heroImage}
-                              alt={`${unit.name} main`}
-                              fill
-                              sizes="(min-width: 1024px) 50vw, 100vw"
-                              className="object-cover"
-                            />
-                          </div>
-                        )}
-
-                        <p className="mb-3 text-gray-600">{unit.shortDescription || unit.details}</p>
-
-                        <div className="mb-4 flex flex-wrap gap-2">
-                          {unit.bedrooms !== null && (
-                            <span className="rounded-full border border-gray-200 px-3 py-1 text-xs font-medium text-gray-600">
-                              {unit.bedrooms} bed{unit.bedrooms === 1 ? '' : 's'}
-                            </span>
-                          )}
-                          {unit.bathrooms !== null && (
-                            <span className="rounded-full border border-gray-200 px-3 py-1 text-xs font-medium text-gray-600">
-                              {unit.bathrooms} bath{unit.bathrooms === 1 ? '' : 's'}
-                            </span>
-                          )}
-                          {unit.squareFeet !== null && (
-                            <span className="rounded-full border border-gray-200 px-3 py-1 text-xs font-medium text-gray-600">
-                              {unit.squareFeet.toLocaleString('en-US')} sqft
-                            </span>
-                          )}
-                        </div>
-
-                        {unit.formattedPrice && (
-                          <p className="mb-4 text-lg font-semibold text-gray-900">{unit.formattedPrice}</p>
-                        )}
-
-                        <Link
-                          href={`/units/${project.slug}/${unitSlug}`}
-                          className="inline-flex text-sm font-semibold text-[#3b7d98] underline underline-offset-4 transition hover:text-[#2d5f75]"
-                        >
-                          View Unit Details →
-                        </Link>
-                      </div>
-                    );
-                  })}
-                </div>
+                <UnitCarousel units={units} projectSlug={project.slug} projectName={project.name} />
               </div>
             </LazySection>
           )}

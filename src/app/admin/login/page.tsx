@@ -41,6 +41,16 @@ export default function AdminLoginPage() {
   }, [router]);
 
   const handleSignIn = async () => {
+    // Localhost bypass: auto-login without Google OAuth
+    const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    
+    if (isLocalhost) {
+      setLoading(true);
+      // Just redirect to admin - the session endpoint will return the mock user
+      router.replace('/admin/projects');
+      return;
+    }
+
     setLoading(true);
     try {
       const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin;
@@ -99,7 +109,9 @@ export default function AdminLoginPage() {
           <p className="text-xs uppercase tracking-[0.3em] text-slate-400">Admin Access</p>
           <h1 className="text-3xl font-semibold text-slate-900">Sign in to the Projects CMS</h1>
           <p className="text-sm text-slate-600">
-            Sign in with your company Google account. Access is restricted to approved team members.
+            {typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+              ? 'Localhost mode: Click to sign in as Andrew Showell (no authentication required).'
+              : 'Sign in with your company Google account. Access is restricted to approved team members.'}
           </p>
         </div>
         {sessionStatus.email && !sessionStatus.role && (
@@ -112,7 +124,13 @@ export default function AdminLoginPage() {
           onClick={handleSignIn}
           disabled={loading}
         >
-          {loading ? 'Opening Google sign-in…' : 'Sign in with Google'}
+          {loading 
+            ? (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+                ? 'Signing in…' 
+                : 'Opening Google sign-in…')
+            : (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+                ? 'Sign in as Andrew Showell (Localhost)'
+                : 'Sign in with Google')}
         </button>
       </section>
 

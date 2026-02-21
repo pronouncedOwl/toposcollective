@@ -26,6 +26,11 @@ const fetchRoleByEmail = async (email: string): Promise<AdminRole | null> => {
 };
 
 export async function getAdminUser(): Promise<AdminUser | null> {
+  // Localhost bypass: auto-login as andrew showell
+  if (process.env.NODE_ENV === 'development' || process.env.NEXT_PUBLIC_SITE_URL?.includes('localhost')) {
+    return { email: 'andrew.showell@toposcollective.com', role: 'admin' };
+  }
+
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase.auth.getUser();
 
@@ -40,6 +45,15 @@ export async function getAdminUser(): Promise<AdminUser | null> {
 }
 
 export async function ensureAdminRequest(req: NextRequest) {
+  // Localhost bypass: auto-login as andrew showell
+  const isLocalhost = process.env.NODE_ENV === 'development' || 
+                      req.headers.get('host')?.includes('localhost') ||
+                      process.env.NEXT_PUBLIC_SITE_URL?.includes('localhost');
+  
+  if (isLocalhost) {
+    return { authorized: true as const, role: 'admin' as AdminRole, email: 'andrew.showell@toposcollective.com' };
+  }
+
   const supabase = createSupabaseRequestClient(req);
   const { data, error } = await supabase.auth.getUser();
 

@@ -19,6 +19,23 @@ type ProjectsShowcaseClientProps = {
 
 const imagesPerPage = 4;
 
+const HouseIcon = ({ className = '' }: { className?: string }) => (
+  <svg
+    className={className}
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <path
+      d="M3 12L5 10M5 10L12 3L19 10M5 10V20C5 20.5523 5.44772 21 6 21H9M19 10L21 12M19 10V20C19 20.5523 18.5523 21 18 21H15M9 21C9.55228 21 10 20.5523 10 20V16C10 15.4477 10.4477 15 11 15H13C13.5523 15 14 15.4477 14 16V20C14 20.5523 14.4477 21 15 21M9 21H15"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
 const formatPrice = (value: number | null) => {
   if (value === null || Number.isNaN(value)) return null;
   return new Intl.NumberFormat('en-US', {
@@ -29,15 +46,96 @@ const formatPrice = (value: number | null) => {
   }).format(value);
 };
 
-const getRandomStrip = (images: ProjectShowcaseItem['heroStripCandidates'], max: number) => {
-  const unique = Array.from(new Map(images.map((image) => [image.url, image])).values());
-  if (unique.length <= max) return unique;
-  const shuffled = [...unique];
-  for (let i = shuffled.length - 1; i > 0; i -= 1) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+import { getRandomStrip } from '@/lib/image-utils';
+
+const getProjectThumbnail = (project: ProjectShowcaseItem): { url: string; alt: string } | null => {
+  // 1. First project hero image (heroStripCandidates[0] should be a hero photo if available)
+  if (project.heroStripCandidates.length > 0) {
+    return project.heroStripCandidates[0];
   }
-  return shuffled.slice(0, max);
+  
+  // 2. First unit photo
+  const unitWithPhoto = project.units.find((unit) => unit.heroImage);
+  if (unitWithPhoto?.heroImage) {
+    return {
+      url: unitWithPhoto.heroImage,
+      alt: `${project.name} ${unitWithPhoto.name} photo`,
+    };
+  }
+  
+  // 3. Return null to indicate we should use the house icon
+  return null;
+};
+
+const formatUnitSummary = (project: ProjectShowcaseItem): string => {
+  if (project.units.length === 0) return 'Unit info coming soon!';
+  
+  const unitCount = project.units.length;
+  const countLabel = `${unitCount} unit${unitCount === 1 ? '' : 's'}`;
+  
+  // Calculate bedroom range
+  const bedrooms = project.units.map((u) => u.bedrooms).filter((b): b is number => b !== null);
+  let bedroomRange = '';
+  if (bedrooms.length > 0) {
+    const minBedrooms = Math.min(...bedrooms);
+    const maxBedrooms = Math.max(...bedrooms);
+    if (minBedrooms === maxBedrooms) {
+      bedroomRange = `${minBedrooms}bd`;
+    } else {
+      bedroomRange = `${minBedrooms}bd–${maxBedrooms}bd`;
+    }
+  }
+  
+  // Calculate square feet range
+  const squareFeet = project.units.map((u) => u.squareFeet).filter((sf): sf is number => sf !== null);
+  let squareFeetRange = '';
+  if (squareFeet.length > 0) {
+    const minSqft = Math.min(...squareFeet);
+    const maxSqft = Math.max(...squareFeet);
+    if (minSqft === maxSqft) {
+      squareFeetRange = `${minSqft.toLocaleString('en-US')} sqft`;
+    } else {
+      squareFeetRange = `${minSqft.toLocaleString('en-US')}–${maxSqft.toLocaleString('en-US')} sqft`;
+    }
+  }
+  
+  // Build the summary
+  const parts = [countLabel];
+  if (bedroomRange) parts.push(bedroomRange);
+  if (squareFeetRange) parts.push(squareFeetRange);
+  
+  return parts.join(' · ');
+};
+
+const formatShortCompletion = (completionLabel: string): string => {
+  // Extract date from completionLabel which is in format "Estimated completion August 2026" or "Completed August 2026"
+  const match = completionLabel.match(/(Estimated completion|Completed)\s+(\w+)\s+(\d{4})/);
+  if (!match) {
+    // Handle cases like "Completion date forthcoming"
+    return completionLabel;
+  }
+  
+  const [, prefix, monthName, year] = match;
+  const monthMap: Record<string, string> = {
+    January: '1',
+    February: '2',
+    March: '3',
+    April: '4',
+    May: '5',
+    June: '6',
+    July: '7',
+    August: '8',
+    September: '9',
+    October: '10',
+    November: '11',
+    December: '12',
+  };
+  
+  const monthNum = monthMap[monthName];
+  if (!monthNum) return completionLabel;
+  
+  const shortPrefix = prefix === 'Estimated completion' ? 'Est Complete' : 'Completed';
+  return `${shortPrefix} ${monthNum}.${year}`;
 };
 
 export default function ProjectsShowcaseClient({
@@ -49,7 +147,7 @@ export default function ProjectsShowcaseClient({
   ctaHref,
   ctaLabel,
 }: ProjectsShowcaseClientProps) {
-  const [expandedProjectId, setExpandedProjectId] = useState<string | null>(projects[0]?.id ?? null);
+  const [expandedProjectId, setExpandedProjectId] = useState<string | null>(null);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [selectedUnitId, setSelectedUnitId] = useState<string | null>(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -108,16 +206,6 @@ export default function ProjectsShowcaseClient({
     setExpandedProjectId((prev) => (prev === projectId ? null : projectId));
   };
 
-  const buildUnitSummary = (project: ProjectShowcaseItem) => {
-    if (project.units.length === 0) return 'No units available';
-    const summary = project.units
-      .slice(0, 2)
-      .map((unit) => `${unit.name}: ${unit.details}`)
-      .join(' • ');
-    const countLabel = `${project.units.length} unit${project.units.length === 1 ? '' : 's'}`;
-    return summary ? `${countLabel} · ${summary}` : countLabel;
-  };
-
   return (
     <div className="min-h-screen bg-white">
       <LazySection direction="fade" delay={0}>
@@ -140,199 +228,107 @@ export default function ProjectsShowcaseClient({
             {projects.map((project, index) => {
               const isExpanded = expandedProjectId === project.id;
               const heroStrip = heroStripByProject.get(project.id) ?? [];
+              const thumbnail = getProjectThumbnail(project);
+              const unitSummary = formatUnitSummary(project);
+              const shortCompletion = formatShortCompletion(project.completionLabel);
 
               return (
                 <LazySection key={project.id} direction="up" delay={index * 120}>
-                  <div className="rounded-3xl border border-gray-200 bg-white p-8 shadow-sm md:p-10">
-                    <div className="flex flex-wrap items-start justify-between gap-4">
-                      <div>
-                        <h2 className="mb-3 text-3xl font-bold text-gray-900 md:text-4xl">{project.name}</h2>
-                        <p className="mb-2 text-lg text-gray-600">{project.description || project.details}</p>
-                        <p className="text-sm uppercase tracking-[0.3em] text-gray-400">{project.completionLabel}</p>
-                      </div>
-                      <button
-                        className="inline-flex items-center gap-2 rounded-full border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
-                        onClick={() => toggleExpanded(project.id)}
-                        aria-expanded={isExpanded}
-                        aria-controls={`project-${project.id}`}
-                      >
-                        {isExpanded ? 'Hide details' : 'Expand details'}
-                        <span aria-hidden className="text-base">
-                          {isExpanded ? '▴' : '▾'}
-                        </span>
-                      </button>
-                    </div>
-
-                    <div className="mt-6">
-                      {!isExpanded && (
-                        <div className="grid gap-6 md:grid-cols-[minmax(0,1fr),minmax(0,0.7fr)] md:items-center">
-                          <div className="space-y-3 text-gray-600">
-                            <p className="text-base">{project.description || project.details}</p>
-                            <p className="text-sm text-gray-500">{buildUnitSummary(project)}</p>
-                            <div className="flex flex-wrap items-center gap-4">
-                              <button
-                                className="inline-flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.3em] text-gray-400 transition hover:text-gray-600"
-                                onClick={() => toggleExpanded(project.id)}
-                              >
-                                Expand project
-                                <span aria-hidden>→</span>
-                              </button>
-                              <Link
-                                href={`/project/${project.slug}`}
-                                className="inline-flex items-center gap-2 text-sm font-semibold text-[#3b7d98] underline underline-offset-4 transition hover:text-[#2d5f75]"
-                              >
-                                View project page
-                              </Link>
-                            </div>
-                          </div>
-                          {heroStrip.length > 0 && (
-                            <div className="flex h-24 w-full gap-1 overflow-hidden rounded-2xl bg-gray-100 shadow-md md:h-28">
-                              {heroStrip.map((image, imageIndex) => (
-                                <div key={image.url} className="relative h-full flex-1 overflow-hidden">
-                                  <Image
-                                    src={image.url}
-                                    alt={image.alt || `${project.name} image ${imageIndex + 1}`}
-                                    fill
-                                    sizes="(min-width: 768px) 25vw, 50vw"
-                                    className="object-cover"
-                                  />
-                                </div>
-                              ))}
+                  <div className={`rounded-3xl border border-gray-200 bg-white shadow-sm ${!isExpanded ? 'p-5 md:p-6' : 'p-8 md:p-10'}`}>
+                    {!isExpanded ? (
+                      // List View (collapsed)
+                      <div className="flex flex-wrap items-start gap-6">
+                        {/* Thumbnail */}
+                        <div className="relative h-24 w-[134px] flex-shrink-0 overflow-hidden rounded-2xl border border-[#3b7d98]/75 bg-gray-100 shadow-sm md:h-32 md:w-[179px]">
+                          {thumbnail ? (
+                            <Image
+                              src={thumbnail.url}
+                              alt={thumbnail.alt}
+                              fill
+                              sizes="128px"
+                              className="object-contain object-center rounded-2xl"
+                            />
+                          ) : (
+                            <div className="flex h-full w-full items-center justify-center text-gray-400">
+                              <HouseIcon className="h-12 w-12" />
                             </div>
                           )}
                         </div>
-                      )}
-                      {isExpanded && heroStrip.length > 0 && (
-                        <div className="flex h-28 w-full gap-1 overflow-hidden rounded-2xl bg-gray-100 shadow-md md:h-32">
-                          {heroStrip.map((image, imageIndex) => (
-                            <div key={image.url} className="relative h-full flex-1 overflow-hidden">
-                              <Image
-                                src={image.url}
-                                alt={image.alt || `${project.name} image ${imageIndex + 1}`}
-                                fill
-                                sizes="(min-width: 768px) 25vw, 50vw"
-                                className="object-cover"
-                              />
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
 
-                    {isExpanded && (
-                      <div id={`project-${project.id}`} className="mt-8">
-                        <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
-                          <div className="max-w-3xl">
-                            {project.longDescription && (
-                              <p className="text-lg text-gray-600">{project.longDescription}</p>
-                            )}
+                        {/* Content */}
+                        <div className="flex-1 min-w-0">
+                          <h2 className="mb-2 text-2xl font-bold text-gray-900 md:text-3xl">{project.name}</h2>
+                          <p className="mb-2 text-sm text-gray-500">{unitSummary}</p>
+                          <p className="mb-4 text-sm text-gray-400">{shortCompletion}</p>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Link
+                              href={`/project/${project.slug}`}
+                              className="inline-flex items-center gap-1.5 rounded-full border border-[#3b7d98] bg-[#3b7d98] px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-[#2d5f75]"
+                            >
+                              View project page →
+                            </Link>
+                            <button
+                              className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 px-3 py-1.5 text-xs font-semibold text-[#3b7d98] transition hover:bg-gray-50"
+                              onClick={() => toggleExpanded(project.id)}
+                              aria-expanded={false}
+                              aria-controls={`project-${project.id}`}
+                            >
+                              Expand details
+                              <span aria-hidden className="text-xs">
+                                ▾
+                              </span>
+                            </button>
                           </div>
-                          <Link
-                            href={`/project/${project.slug}`}
-                            className="inline-flex items-center gap-2 rounded-full border border-[#3b7d98] bg-white px-4 py-2 text-sm font-semibold text-[#3b7d98] transition hover:bg-[#3b7d98] hover:text-white"
-                          >
-                            View project page →
-                          </Link>
-                        </div>
-
-                        <div className="grid gap-10 md:grid-cols-2">
-                          {project.units.map((unit, unitIndex) => {
-                            const pageKey = getUnitPageKey(project.id, unit.id);
-                            const { page, start, images, totalPages } = paginatedImages(unit, pageKey);
-                            const unitMain = unit.heroImage || unit.gallery[0]?.url || '';
-                            const unitSlug = unit.unitCode || unit.id;
-                            const isLastAndOdd = unitIndex === project.units.length - 1 && project.units.length % 2 === 1;
-                            return (
-                              <div
-                                key={unit.id}
-                                className={`rounded-xl border border-gray-200 bg-white p-5 shadow-sm ${
-                                  isLastAndOdd ? 'md:col-span-2 md:mx-auto md:max-w-[calc(50%-1.25rem)]' : ''
-                                }`}
-                              >
-                                <div className="mb-6">
-                                  <p className="text-xs uppercase tracking-[0.3em] text-gray-400">Unit</p>
-                                  <h3 className="mb-2 text-xl font-semibold text-gray-900">{unit.name}</h3>
-                                  <p className="text-lg text-gray-600">{unit.shortDescription || unit.details}</p>
-                                  {unit.squareFeet ? (
-                                    <p className="mt-1 text-sm font-medium uppercase tracking-wide text-gray-500">
-                                      {unit.squareFeet.toLocaleString('en-US')} Sq ft
-                                    </p>
-                                  ) : null}
-                                  {formatPrice(unit.price) && (
-                                    <p className="mt-1 text-lg font-semibold text-gray-900">{formatPrice(unit.price)}</p>
-                                  )}
-                                  <Link
-                                    href={`/units/${project.slug}/${unitSlug}`}
-                                    className="mt-3 inline-flex text-sm font-semibold text-[#3b7d98] underline underline-offset-4 transition hover:text-[#2d5f75]"
-                                  >
-                                    View Unit
-                                  </Link>
-                                </div>
-
-                                {unitMain && (
-                                  <button className="mb-6 w-full" onClick={() => openModal(project.id, unit.id)}>
-                                    <div className="relative h-56 w-full overflow-hidden rounded-lg border border-gray-200 bg-gray-50 shadow-sm md:h-72">
-                                      <Image
-                                        src={unitMain}
-                                        alt={`${project.name} ${unit.name} main`}
-                                        fill
-                                        className="object-cover blur-xl scale-110 opacity-60"
-                                        aria-hidden
-                                      />
-                                      <div className="absolute inset-0 flex items-center justify-center p-4">
-                                        <Image
-                                          src={unitMain}
-                                          alt={`${project.name} ${unit.name} main`}
-                                          fill
-                                          sizes="(min-width: 1024px) 50vw, 100vw"
-                                          className="object-contain"
-                                        />
-                                      </div>
-                                    </div>
-                                  </button>
-                                )}
-
-                                {unit.gallery.length > 0 && (
-                                  <>
-                                    <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-                                      {images.map((image, imageIndex) => (
-                                        <button
-                                          key={image.id}
-                                          className="relative aspect-square overflow-hidden rounded-lg bg-gray-200 transition hover:opacity-90"
-                                          onClick={() => openModal(project.id, unit.id, start + imageIndex)}
-                                        >
-                                          <Image src={image.url} alt={image.alt} fill sizes="(min-width: 768px) 25vw, 50vw" className="object-cover"  />
-                                        </button>
-                                      ))}
-                                    </div>
-                                    {totalPages > 1 && (
-                                      <div className="mt-4 flex items-center justify-between text-sm text-gray-600">
-                                        <button
-                                          className="inline-flex items-center gap-2 rounded-full border border-gray-200 px-3 py-1 font-medium text-gray-600 transition hover:bg-gray-50 disabled:opacity-40"
-                                          onClick={() => updatePage(pageKey, Math.max(0, page - 1))}
-                                          disabled={page === 0}
-                                        >
-                                          ◀ Prev
-                                        </button>
-                                        <span>
-                                          Page {page + 1} of {totalPages}
-                                        </span>
-                                        <button
-                                          className="inline-flex items-center gap-2 rounded-full border border-gray-200 px-3 py-1 font-medium text-gray-600 transition hover:bg-gray-50 disabled:opacity-40"
-                                          onClick={() => updatePage(pageKey, Math.min(totalPages - 1, page + 1))}
-                                          disabled={page >= totalPages - 1}
-                                        >
-                                          Next ▶
-                                        </button>
-                                      </div>
-                                    )}
-                                  </>
-                                )}
-                              </div>
-                            );
-                          })}
                         </div>
                       </div>
+                    ) : (
+                      // Expanded View
+                      <>
+                        <div className="flex flex-wrap items-start justify-between gap-4">
+                          <div>
+                            <h2 className="mb-3 text-3xl font-bold text-gray-900 md:text-4xl">{project.name}</h2>
+                            <p className="mb-2 text-sm text-gray-500">{unitSummary}</p>
+                            <p className="mb-2 text-base text-gray-600">{project.description || project.details}</p>
+                            <p className="text-sm uppercase tracking-[0.3em] text-gray-400">{project.completionLabel}</p>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <Link
+                              href={`/project/${project.slug}`}
+                              className="inline-flex items-center gap-2 rounded-full border border-[#3b7d98] bg-[#3b7d98] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#2d5f75]"
+                            >
+                              View project page →
+                            </Link>
+                            <button
+                              className="inline-flex items-center gap-2 rounded-full border border-gray-200 px-4 py-2 text-sm font-semibold text-[#3b7d98] transition hover:bg-gray-50"
+                              onClick={() => toggleExpanded(project.id)}
+                              aria-expanded={true}
+                              aria-controls={`project-${project.id}`}
+                            >
+                              Hide details
+                              <span aria-hidden className="text-base">
+                                ▴
+                              </span>
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* 4-image gallery */}
+                        {heroStrip.length > 0 && (
+                          <div className="mt-6 flex h-36 w-full gap-1 md:h-[168px]">
+                            {heroStrip.map((image, imageIndex) => (
+                              <div key={image.url} className="relative h-full flex-1 overflow-hidden rounded-2xl border border-[#3b7d98]/75 bg-gray-100 shadow-sm">
+                                <Image
+                                  src={image.url}
+                                  alt={image.alt || `${project.name} image ${imageIndex + 1}`}
+                                  fill
+                                  sizes="(min-width: 768px) 25vw, 50vw"
+                                  className="object-contain object-center rounded-2xl"
+                                />
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </>
                     )}
                   </div>
                 </LazySection>

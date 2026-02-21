@@ -12,7 +12,7 @@ export default function Home() {
       <LazySection direction="fade" delay={100}>
         <HeroImage
           title="Taking you to Exceptional Places"
-          imageSrc="/images/header-image.jpg"
+          imageSrc="/images/header-image.webp"
           className="h-screen pt-24"
           darkOverlay="bg-black/50"
         />

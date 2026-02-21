@@ -94,7 +94,6 @@ type UnitFormState = {
   squareFeet: string;
   timeOnMarketDays: string;
   description: string;
-  shortDescription: string;
   longDescription: string;
   floorplanUrl: string;
   availabilityStatus: string;
@@ -132,7 +131,6 @@ const emptyUnit: UnitFormState = {
   squareFeet: '',
   timeOnMarketDays: '',
   description: '',
-  shortDescription: '',
   longDescription: '',
   floorplanUrl: '',
   availabilityStatus: '',
@@ -222,7 +220,6 @@ const projectToFormState = (project: ApiProject): ProjectFormState => ({
     squareFeet: unit.square_feet?.toString() || '',
     timeOnMarketDays: unit.time_on_market_days?.toString() || '',
     description: unit.description || '',
-    shortDescription: unit.short_description || '',
     longDescription: unit.long_description || '',
     floorplanUrl: unit.floorplan_url || '',
     availabilityStatus: unit.availability_status || '',
@@ -259,7 +256,7 @@ const formToApiPayload = (form: ProjectFormState) => ({
     squareFeet: toNumberOrNull(unit.squareFeet),
     timeOnMarketDays: toNumberOrNull(unit.timeOnMarketDays),
     description: toNullIfEmpty(unit.description),
-    shortDescription: toNullIfEmpty(unit.shortDescription),
+    shortDescription: null,
     longDescription: toNullIfEmpty(unit.longDescription),
     floorplanUrl: toNullIfEmpty(unit.floorplanUrl),
     availabilityStatus: toNullIfEmpty(unit.availabilityStatus),
@@ -1191,16 +1188,10 @@ export default function ProjectsManager({ projectId }: { projectId?: string }) {
                       Description
                       <textarea className="mt-1 w-full rounded border border-slate-300 px-2 py-1 text-sm text-slate-900" rows={2} value={unit.description} onChange={(e) => updateUnitField(index, 'description', e.target.value)} />
                     </label>
-                    <div className="mt-3 grid gap-3 md:grid-cols-2">
-                      <label className="text-xs font-medium text-slate-500">
-                        Short Description
-                        <textarea className="mt-1 w-full rounded border border-slate-300 px-2 py-1 text-sm text-slate-900" rows={2} value={unit.shortDescription} onChange={(e) => updateUnitField(index, 'shortDescription', e.target.value)} />
-                      </label>
-                      <label className="text-xs font-medium text-slate-500">
-                        Long Description
-                        <textarea className="mt-1 w-full rounded border border-slate-300 px-2 py-1 text-sm text-slate-900" rows={3} value={unit.longDescription} onChange={(e) => updateUnitField(index, 'longDescription', e.target.value)} />
-                      </label>
-                    </div>
+                    <label className="mt-3 text-xs font-medium text-slate-500">
+                      Long Description
+                      <textarea className="mt-1 w-full rounded border border-slate-300 px-2 py-1 text-sm text-slate-900" rows={3} value={unit.longDescription} onChange={(e) => updateUnitField(index, 'longDescription', e.target.value)} />
+                    </label>
 
                     <div className="mt-4 border-t border-slate-200 pt-3">
                       <div className="flex items-center justify-between">

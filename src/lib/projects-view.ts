@@ -23,6 +23,8 @@ export type ProjectShowcaseItem = {
     unitCode: string;
     price: number | null;
     squareFeet: number | null;
+    bedrooms: number | null;
+    bathrooms: number | null;
     shortDescription?: string | null;
     longDescription?: string | null;
     details: string;
@@ -39,6 +41,7 @@ export type ProjectUnitPageData = {
   project: PublicProject;
   unit: PublicUnit;
   heroImage: string | null;
+  heroStripCandidates: { url: string; alt: string }[];
   gallery: { id: string; url: string; alt: string }[];
   floorplanUrl: string | null;
   formattedPrice: string | null;
@@ -47,11 +50,13 @@ export type ProjectUnitPageData = {
   address: string;
   mapUrl: string | null;
   isStaticMap: boolean;
+  completionLabel: string;
 };
 
 export type ProjectPageData = {
   project: PublicProject;
   heroImages: { url: string; alt: string }[];
+  heroStripCandidates: { url: string; alt: string }[];
   gallery: { id: string; url: string; alt: string }[];
   completionLabel: string;
   address: string;
@@ -72,6 +77,8 @@ export type ProjectPageData = {
     availability: string;
   }[];
 };
+
+// getRandomStrip moved to image-utils.ts to avoid server-only import issues
 
 const normalizeSlug = (value: string) => value.trim().toLowerCase().replace(/\s+/g, '-');
 
@@ -214,6 +221,8 @@ const mapProjectToShowcase = async (project: PublicProject): Promise<ProjectShow
         unitCode: unit.unit_code || '',
         price: unit.price ?? null,
         squareFeet: unit.square_feet ?? null,
+        bedrooms: unit.bedrooms ?? null,
+        bathrooms: unit.bathrooms ?? null,
         shortDescription: unit.short_description ?? null,
         longDescription: unit.long_description ?? null,
         details: buildUnitDetails(unit),
@@ -267,6 +276,7 @@ export const getProjectUnitPageData = async (
 
   const { project, unit } = match;
   const address = formatAddress(project);
+  const completionLabel = formatCompletionLabel(project);
   const sortedPhotos = sortPhotos(unit.unit_photos || []);
   const heroPhotoPath =
     sortedPhotos.find((photo) => photo.role === 'main')?.storage_path || sortedPhotos[0]?.storage_path || '';
@@ -285,6 +295,41 @@ export const getProjectUnitPageData = async (
     )
   ).filter(Boolean) as { id: string; url: string; alt: string }[];
 
+  // Create hero strip candidates from unit photos first, then project hero photos
+  const unitPhotoCandidates = (
+    await Promise.all(
+      sortedPhotos.map(async (photo) => {
+        const url = resolveImageUrl(photo.storage_path);
+        if (!url) return null;
+        return {
+          url,
+          alt: photo.alt_text || `${project.name} ${unit.name} photo`,
+        };
+      })
+    )
+  ).filter(Boolean) as { url: string; alt: string }[];
+
+  const projectPhotos = sortPhotos(project.project_photos || []);
+  const projectHeroCandidates = (
+    await Promise.all(
+      projectPhotos
+        .filter((photo) => photo.role === 'hero')
+        .map(async (photo) => {
+          const url = resolveImageUrl(photo.storage_path);
+          if (!url) return null;
+          return {
+            url,
+            alt: photo.alt_text || `${project.name} photo`,
+          };
+        }),
+    )
+  ).filter(Boolean) as { url: string; alt: string }[];
+
+  // Combine: unit photos first, then project hero photos
+  const heroStripCandidates = Array.from(
+    new Map([...unitPhotoCandidates, ...projectHeroCandidates].map((image) => [image.url, image])).values()
+  ).slice(0, 4);
+
   const floorplanUrl = resolveImageUrl(unit.floorplan_url || '');
   const formattedPrice = formatPrice(unit.price ?? null);
   const stats = [
@@ -299,6 +344,7 @@ export const getProjectUnitPageData = async (
     project,
     unit,
     heroImage,
+    heroStripCandidates,
     gallery,
     floorplanUrl,
     formattedPrice,
@@ -307,6 +353,7 @@ export const getProjectUnitPageData = async (
     address,
     mapUrl,
     isStaticMap: Boolean(mapsApiKey),
+    completionLabel,
   };
 };
 
@@ -342,6 +389,7 @@ export const getUnitPageDataBySlug = async (
   }
 
   const address = formatAddress(project);
+  const completionLabel = formatCompletionLabel(project);
   const sortedPhotos = sortPhotos(unit.unit_photos || []);
   const heroPhotoPath =
     sortedPhotos.find((photo) => photo.role === 'main')?.storage_path || sortedPhotos[0]?.storage_path || '';
@@ -360,6 +408,41 @@ export const getUnitPageDataBySlug = async (
     )
   ).filter(Boolean) as { id: string; url: string; alt: string }[];
 
+  // Create hero strip candidates from unit photos first, then project hero photos
+  const unitPhotoCandidates = (
+    await Promise.all(
+      sortedPhotos.map(async (photo) => {
+        const url = resolveImageUrl(photo.storage_path);
+        if (!url) return null;
+        return {
+          url,
+          alt: photo.alt_text || `${project.name} ${unit.name} photo`,
+        };
+      })
+    )
+  ).filter(Boolean) as { url: string; alt: string }[];
+
+  const projectPhotos = sortPhotos(project.project_photos || []);
+  const projectHeroCandidates = (
+    await Promise.all(
+      projectPhotos
+        .filter((photo) => photo.role === 'hero')
+        .map(async (photo) => {
+          const url = resolveImageUrl(photo.storage_path);
+          if (!url) return null;
+          return {
+            url,
+            alt: photo.alt_text || `${project.name} photo`,
+          };
+        }),
+    )
+  ).filter(Boolean) as { url: string; alt: string }[];
+
+  // Combine: unit photos first, then project hero photos
+  const heroStripCandidates = Array.from(
+    new Map([...unitPhotoCandidates, ...projectHeroCandidates].map((image) => [image.url, image])).values()
+  ).slice(0, 4);
+
   const floorplanUrl = resolveImageUrl(unit.floorplan_url || '');
   const formattedPrice = formatPrice(unit.price ?? null);
   const stats = [
@@ -374,6 +457,7 @@ export const getUnitPageDataBySlug = async (
     project,
     unit,
     heroImage,
+    heroStripCandidates,
     gallery,
     floorplanUrl,
     formattedPrice,
@@ -382,6 +466,7 @@ export const getUnitPageDataBySlug = async (
     address,
     mapUrl,
     isStaticMap: Boolean(mapsApiKey),
+    completionLabel,
   };
 };
 
@@ -406,13 +491,12 @@ export const getProjectPageData = async (slug: string): Promise<ProjectPageData 
   const mapUrl = address ? getStaticMapUrl(address) : null;
   const completionLabel = formatCompletionLabel(project);
 
-  // Resolve project photos
+  // Resolve project photos - use same logic as mapProjectToShowcase
   const sortedProjectPhotos = sortPhotos(project.project_photos || []);
-  const heroImages = (
+  const projectHeroCandidates = (
     await Promise.all(
       sortedProjectPhotos
-        .filter((photo) => photo.role === 'hero' || photo.role === 'main')
-        .slice(0, 4)
+        .filter((photo) => photo.role === 'hero')
         .map(async (photo) => {
           const url = resolveImageUrl(photo.storage_path);
           if (!url) return null;
@@ -420,11 +504,36 @@ export const getProjectPageData = async (slug: string): Promise<ProjectPageData 
             url,
             alt: photo.alt_text || `${project.name} photo`,
           };
-        })
+        }),
     )
   ).filter(Boolean) as { url: string; alt: string }[];
 
-  const gallery = (
+  const unitMainCandidates = (
+    await Promise.all(
+      (project.units || []).map(async (unit) => {
+        const sorted = sortPhotos(unit.unit_photos || []);
+        const unitMain = sorted.find((photo) => photo.role === 'main') || sorted[0];
+        const url = resolveImageUrl(unitMain?.storage_path || '');
+        if (!url) return null;
+        return {
+          url,
+          alt: unitMain?.alt_text || `${project.name} ${unit.name} photo`,
+        };
+      }),
+    )
+  ).filter(Boolean) as { url: string; alt: string }[];
+
+  // Create heroStripCandidates same as mapProjectToShowcase
+  const heroStripCandidates =
+    projectHeroCandidates.length >= 4
+      ? projectHeroCandidates
+      : Array.from(new Map([...projectHeroCandidates, ...unitMainCandidates].map((image) => [image.url, image])).values()).slice(0, 4);
+
+  // For backward compatibility, also set heroImages (will be used with getRandomStrip in component)
+  const heroImages = heroStripCandidates;
+
+  // Resolve project photos for gallery
+  const projectGallery = (
     await Promise.all(
       sortedProjectPhotos.map(async (photo) => {
         const url = resolveImageUrl(photo.storage_path);
@@ -437,6 +546,33 @@ export const getProjectPageData = async (slug: string): Promise<ProjectPageData 
       })
     )
   ).filter(Boolean) as { id: string; url: string; alt: string }[];
+
+  // Collect all unit photos from all units (sorted within each unit, maintaining unit order)
+  const allUnitPhotos = (project.units || []).flatMap((unit) => {
+    const sortedUnitPhotos = sortPhotos(unit.unit_photos || []);
+    return sortedUnitPhotos.map((photo) => ({
+      photo,
+      unitName: unit.name,
+    }));
+  });
+
+  // Resolve all unit photos for gallery
+  const unitGallery = (
+    await Promise.all(
+      allUnitPhotos.map(async ({ photo, unitName }) => {
+        const url = resolveImageUrl(photo.storage_path);
+        if (!url) return null;
+        return {
+          id: photo.id,
+          url,
+          alt: photo.alt_text || `${project.name} ${unitName} photo`,
+        };
+      })
+    )
+  ).filter(Boolean) as { id: string; url: string; alt: string }[];
+
+  // Combine galleries: project photos first, then unit photos
+  const gallery = [...projectGallery, ...unitGallery];
 
   // Resolve unit data
   const units = await Promise.all(
@@ -468,6 +604,7 @@ export const getProjectPageData = async (slug: string): Promise<ProjectPageData 
   return {
     project,
     heroImages,
+    heroStripCandidates,
     gallery,
     completionLabel,
     address,
